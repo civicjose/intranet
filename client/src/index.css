@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.animated-gradient {
+  background: linear-gradient(45deg, #4c2a4c, #6c3b5d, #e5007e);
+  background-size: 200% 200%;
+  animation: gradient 10s ease infinite; /* Animación más rápida */
+}
+
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
