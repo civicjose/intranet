@@ -1,8 +1,16 @@
-// client/src/components/layout/Sidebar.jsx
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { MdOutlineDashboard, MdOutlineAdminPanelSettings, MdOutlineApps } from 'react-icons/md';
+import { 
+  MdOutlineDashboard, 
+  MdOutlineAdminPanelSettings, 
+  MdOutlineApps,
+  MdOutlineAssessment,      // Icono para Informes
+  MdOutlineSupportAgent,   // Icono para Tickets
+  MdOutlinePeople,         // Icono para Directorio
+  MdOutlineEvent,          // Icono para Calendario
+  MdOutlineFolder,         // Icono para Recursos
+} from 'react-icons/md';
 
 const Sidebar = () => {
   const { user } = useAuth();
@@ -17,29 +25,40 @@ const Sidebar = () => {
         <span className="text-sm">Macrosad</span>
       </div>
       <nav className="flex-grow space-y-2">
-        <NavLink 
-          to="/dashboard" 
-          className={({ isActive }) => `${linkClasses} ${isActive ? activeLinkClasses : ''}`}
-        >
+        <NavLink to="/dashboard" className={({ isActive }) => `${linkClasses} ${isActive ? activeLinkClasses : ''}`}>
           <MdOutlineDashboard className="mr-3" size={22} />
           Inicio
         </NavLink>
-        <NavLink 
-          to="/tools" // Ruta de ejemplo para el futuro
-          className={({ isActive }) => `${linkClasses} ${isActive ? activeLinkClasses : ''}`}
-        >
-          <MdOutlineApps className="mr-3" size={22} />
-          Herramientas
+        
+        {/* --- Botones solicitados para el futuro --- */}
+        <NavLink to="/reports" className={({ isActive }) => `${linkClasses} ${isActive ? activeLinkClasses : ''}`}>
+          <MdOutlineAssessment className="mr-3" size={22} />
+          Informes
+        </NavLink>
+        <NavLink to="/tickets" className={({ isActive }) => `${linkClasses} ${isActive ? activeLinkClasses : ''}`}>
+          <MdOutlineSupportAgent className="mr-3" size={22} />
+          Tickets
         </NavLink>
 
-        {/* --- Sección solo para Administradores --- */}
+        {/* --- Sugerencias para el futuro (descomentar para activar) --- */}
+        <NavLink to="/directory" className={({ isActive }) => `${linkClasses} ${isActive ? activeLinkClasses : ''}`}>
+          <MdOutlinePeople className="mr-3" size={22} />
+          Directorio
+        </NavLink>
+        <NavLink to="/calendar" className={({ isActive }) => `${linkClasses} ${isActive ? activeLinkClasses : ''}`}>
+          <MdOutlineEvent className="mr-3" size={22} />
+          Calendario
+        </NavLink>
+        <NavLink to="/resources" className={({ isActive }) => `${linkClasses} ${isActive ? activeLinkClasses : ''}`}>
+          <MdOutlineFolder className="mr-3" size={22} />
+          Recursos
+        </NavLink>
+
+        {/* Sección de Administración (solo para admins) */}
         {user && user.role_id == 1 && (
           <div className="pt-4 mt-4 border-t border-gray-500">
             <p className="px-4 text-xs text-gray-400 uppercase mb-2">Administración</p>
-            <NavLink 
-              to="/admin" 
-              className={({ isActive }) => `${linkClasses} ${isActive ? activeLinkClasses : ''}`}
-            >
+            <NavLink to="/admin" className={({ isActive }) => `${linkClasses} ${isActive ? activeLinkClasses : ''}`}>
               <MdOutlineAdminPanelSettings className="mr-3" size={22} />
               Panel Principal
             </NavLink>
