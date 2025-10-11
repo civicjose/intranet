@@ -1,5 +1,6 @@
+// server/middleware/authMiddleware.js
 const jwt = require('jsonwebtoken');
-const db = require('../config/database');
+const User = require('../models/userModel'); // Usamos el modelo para obtener datos frescos
 
 const protect = async (req, res, next) => {
   let token;
@@ -9,28 +10,22 @@ const protect = async (req, res, next) => {
       token = req.headers.authorization.split(' ')[1];
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-      const [rows] = await db.query('SELECT id, email, first_name, last_name, role_id FROM users WHERE id = ?', [decoded.id]);
+      // Usamos el modelo para obtener los datos del usuario, incluyendo el rol
+      req.user = await User.findById(decoded.id);
       
-      if (rows.length === 0) {
+      if (!req.user) {
         return res.status(401).json({ message: 'No autorizado, usuario no encontrado.' });
       }
-      
-      req.user = rows[0];
 
-      // --- AÑADIMOS LA RENOVACIÓN DEL TOKEN ---
-      // Creamos un nuevo payload sin datos sensibles
+      // La renovación del token se queda igual
       const newPayload = { id: req.user.id, role: req.user.role_id };
       const newToken = jwt.sign(newPayload, process.env.JWT_SECRET, {
         expiresIn: process.env.JWT_EXPIRATION,
       });
-
-      // Enviamos el nuevo token en una cabecera personalizada
       res.setHeader('X-Refreshed-Token', newToken);
-      // ------------------------------------------
 
       next();
     } catch (error) {
-      // Si el error es porque el token ha expirado, enviamos un mensaje claro
       if (error.name === 'TokenExpiredError') {
         return res.status(401).json({ message: 'Sesión expirada, por favor inicia sesión de nuevo.' });
       }
@@ -43,4 +38,17 @@ const protect = async (req, res, next) => {
   }
 };
 
-module.exports = { protect };
+// --- NUEVO MIDDLEWARE DE ADMINISTRADOR ---
+const admin = (req, res, next) => {
+  // Este middleware SIEMPRE debe ejecutarse DESPUÉS de 'protect'
+  // Comprobamos si el usuario existe y si su role_id es 1 (admin)
+  if (req.user && req.user.role_id === 1) {
+    next(); // Es admin, puede continuar
+  } else {
+    res.status(403); // 403 Forbidden: sabe quién eres, pero no tienes permiso
+    // Usamos 'next' con un error para pasarlo a un futuro manejador de errores
+    next(new Error('Acceso denegado. Se requieren permisos de administrador.'));
+  }
+};
+
+module.exports = { protect, admin };

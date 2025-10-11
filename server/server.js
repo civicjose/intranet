@@ -1,23 +1,29 @@
-// Cargar las variables de entorno del archivo .env
+// server/server.js
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 
-// Inicializar la aplicación de Express
 const app = express();
 
-// Middlewares
-app.use(cors()); // Habilita CORS para permitir peticiones desde el frontend
-app.use(express.json()); // Permite al servidor entender JSON en el cuerpo de las peticiones
+// --- MIDDLEWARES ---
+app.use(cors());
 
-// Ruta de prueba para verificar que el servidor funciona
+// --- CORRECCIÓN AQUÍ ---
+// Aumentamos el límite del tamaño del payload que el servidor puede aceptar.
+// '50mb' es un límite generoso para artículos con imágenes.
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
+// --------------------
+
+// Hacemos que la carpeta 'uploads' sea accesible públicamente
+app.use('/uploads', express.static(path.join(__dirname, '/uploads')));
+
+// --- RUTAS ---
 app.get('/', (req, res) => {
     res.json({ message: 'API de Intranet Macrosad funcionando correctamente!' });
 });
 
-// --- AÑADIR ESTAS LÍNEAS ---
-// Le decimos a Express que use nuestras rutas de autenticación
-// Todas las rutas definidas en auth.js tendrán el prefijo '/api/auth'
 const authRoutes = require('./routes/authRoutes');
 app.use('/api/auth', authRoutes);
 
@@ -27,11 +33,18 @@ app.use('/api/departments', departmentRoutes);
 const userRoutes = require('./routes/userRoutes');
 app.use('/api/users', userRoutes);
 
-// Definir el puerto en el que correrá el servidor
-// Usamos el puerto definido en .env o el 5000 por defecto
-const PORT = process.env.PORT || 5000;
+const roleRoutes = require('./routes/roleRoutes');
+app.use('/api/roles', roleRoutes);
 
-// Iniciar el servidor
+const newsRoutes = require('./routes/newsRoutes');
+app.use('/api/news', newsRoutes);
+
+const categoryRoutes = require('./routes/categoryRoutes');
+app.use('/api/categories', categoryRoutes);
+
+
+// --- INICIO DEL SERVIDOR ---
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
     console.log(`Servidor corriendo en el puerto ${PORT}`);
 });

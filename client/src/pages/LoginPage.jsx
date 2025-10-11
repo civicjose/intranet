@@ -5,45 +5,58 @@ import ErrorMessage from '../components/ErrorMessage';
 import { FaSpinner } from 'react-icons/fa';
 import { MdOutlineMail, MdOutlineLock, MdOutlineVisibility, MdOutlineVisibilityOff } from 'react-icons/md';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useForm } from '../hooks/useForm';
+import { useAuth } from '../context/AuthContext';
 
 function LoginPage() {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [showPassword, setShowPassword] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState('');
     const navigate = useNavigate();
+    const { login } = useAuth();
+    const { formData, handleChange, isLoading, setIsLoading, error, setError } = useForm({
+        email: '',
+        password: ''
+    });
+    const { email, password } = formData;
+
+    const [showPassword, setShowPassword] = useState(false);
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
-    const handleSubmit = async (event) => {
-        event.preventDefault();
+    const handleEmailSubmit = async () => {
         setIsLoading(true);
         setError('');
-        await new Promise(resolve => setTimeout(resolve, 400));
+        try {
+            const response = await apiClient.post('/auth/check-email', { email });
+            if (response.data.status === 'user_exists') {
+                setShowPassword(true);
+            } else if (response.data.status === 'verification_sent') {
+                navigate('/verify', { state: { email: email } });
+            }
+        } catch (err) {
+            setError(err.response?.data?.message || 'No se pudo conectar con el servidor.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
+    const handleLoginSubmit = async () => {
+        setIsLoading(true);
+        setError('');
+        try {
+            const response = await apiClient.post('/auth/login', { email, password });
+            await login(response.data.token);
+            // La navegación al dashboard es automática gracias al AuthContext y App.jsx
+        } catch (err) {
+            setError('Contraseña incorrecta. Inténtalo de nuevo.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleSubmit = (event) => {
+        event.preventDefault();
         if (!showPassword) {
-            try {
-                const response = await apiClient.post('/auth/check-email', { email });
-                if (response.data.status === 'user_exists') {
-                    setShowPassword(true);
-                } else if (response.data.status === 'verification_sent') {
-                    navigate('/verify', { state: { email: email } });
-                }
-            } catch (err) {
-                setError(err.response?.data?.message || 'No se pudo conectar con el servidor.');
-            } finally {
-                setIsLoading(false);
-            }
+            handleEmailSubmit();
         } else {
-            try {
-                const response = await apiClient.post('/auth/login', { email, password });
-                localStorage.setItem('token', response.data.token);
-                navigate('/dashboard');
-            } catch (err) {
-                setError('Contraseña incorrecta. Inténtalo de nuevo.');
-            } finally {
-                setIsLoading(false);
-            }
+            handleLoginSubmit();
         }
     };
 
@@ -78,7 +91,6 @@ function LoginPage() {
                             <h2 className="text-3xl font-bold text-macrosad-purple">Acceso a la Intranet</h2>
                             <p className="text-gray-500 font-medium text-sm tracking-wide">by Macrosad</p>
                         </div>
-                        {/* --- CAMBIO: Espaciado del formulario reducido de space-y-6 a space-y-4 --- */}
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div className="relative">
                                 <label htmlFor="email" className="sr-only">Correo Electrónico</label>
@@ -88,10 +100,11 @@ function LoginPage() {
                                 <input
                                     type="email"
                                     id="email"
+                                    name="email"
                                     className={`w-full bg-gray-50 text-gray-800 placeholder:text-gray-400 border-2 rounded-lg focus:outline-none focus:ring-2 pl-10 pr-4 py-3 transition ${showPassword ? 'cursor-not-allowed bg-gray-200 text-gray-500' : ''} ${error && !showPassword ? 'border-red-500 ring-red-500' : 'border-gray-200 focus:border-macrosad-pink focus:ring-macrosad-pink'}`}
                                     placeholder="Correo Electrónico"
                                     value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
+                                    onChange={handleChange}
                                     readOnly={showPassword}
                                     required
                                 />
@@ -101,13 +114,12 @@ function LoginPage() {
                                 {showPassword && (
                                     <motion.div
                                         key="password-field"
-                                        // --- CAMBIO: Animación más sutil y rápida ---
                                         initial={{ opacity: 0, height: 0 }}
                                         animate={{ opacity: 1, height: 'auto' }}
                                         exit={{ opacity: 0, height: 0 }}
                                         transition={{ duration: 0.3, ease: "easeOut" }}
                                     >
-                                        <div className="relative pt-4"> {/* Añadido pt-4 para crear espacio */}
+                                        <div className="relative pt-4">
                                             <label htmlFor="password" className="sr-only">Contraseña</label>
                                             <div className="absolute inset-y-0 left-0 pl-3 pt-4 flex items-center pointer-events-none">
                                                 <MdOutlineLock className="text-gray-400" size={20} />
@@ -115,10 +127,11 @@ function LoginPage() {
                                             <input
                                                 type={isPasswordVisible ? 'text' : 'password'}
                                                 id="password"
+                                                name="password"
                                                 className={`w-full bg-gray-50 text-gray-800 placeholder:text-gray-400 border-2 rounded-lg focus:outline-none focus:ring-2 pl-10 pr-10 py-3 transition ${error && showPassword ? 'border-red-500 ring-red-500' : 'border-gray-200 focus:border-macrosad-pink focus:ring-macrosad-pink'}`}
                                                 placeholder="Contraseña"
                                                 value={password}
-                                                onChange={(e) => setPassword(e.target.value)}
+                                                onChange={handleChange}
                                                 required
                                                 autoFocus
                                             />
@@ -132,12 +145,11 @@ function LoginPage() {
                                 )}
                             </AnimatePresence>
                             
-                            {/* --- CAMBIO: Eliminado el div de altura mínima --- */}
                             <div>
                                 {error && <ErrorMessage message={error} />}
                             </div>
 
-                            <div className="pt-2"> {/* Añadido pt-2 para dar un pequeño respiro al botón */}
+                            <div className="pt-2">
                                 <button type="submit" disabled={isLoading} className="w-full flex justify-center items-center gap-3 bg-macrosad-pink text-white font-bold py-3 px-4 rounded-lg hover:bg-opacity-90 active:scale-95 transition duration-300 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
                                     {isLoading ? <><FaSpinner className="animate-spin" /><span>Cargando...</span></> : (showPassword ? 'Iniciar Sesión' : 'Continuar')}
                                 </button>

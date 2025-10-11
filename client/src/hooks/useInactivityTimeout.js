@@ -1,29 +1,39 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef } from 'react';
 
-export const useInactivityTimeout = (logout, timeout = 600000) => { // Timeout por defecto de 10 minutos
-  const [lastActivity, setLastActivity] = useState(Date.now());
+// La firma de la función no cambia, pero sí su lógica interna
+export const useInactivityTimeout = (logout, timeout = 900000, enabled = true) => { // Aumentado a 15 minutos por defecto
+  // 1. Usamos useRef para guardar el tiempo de la última actividad.
+  // useRef no causa re-renderizados y su valor es siempre el actual.
+  const lastActivityRef = useRef(Date.now());
 
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
     const events = ['mousemove', 'keydown', 'click', 'scroll'];
 
+    // 2. La función ahora actualiza la referencia, no un estado.
     const resetTimer = () => {
-      setLastActivity(Date.now());
+      lastActivityRef.current = Date.now();
     };
 
-    // Añadimos los listeners para resetear el timer con cualquier actividad
+    // Añadimos los listeners para la actividad del usuario
     events.forEach(event => window.addEventListener(event, resetTimer));
 
-    // Comprobamos cada segundo si ha pasado el tiempo de inactividad
+    // 3. El intervalo ahora comprueba contra la referencia, que siempre está actualizada.
     const interval = setInterval(() => {
-      if (Date.now() - lastActivity > timeout) {
+      if (Date.now() - lastActivityRef.current > timeout) {
         logout();
       }
-    }, 1000);
+    }, 5000); // Comprobamos cada 5 segundos, es más que suficiente y más eficiente
 
-    // Limpiamos todo al desmontar el componente
+    // La función de limpieza se asegura de que todo se elimine correctamente
     return () => {
       clearInterval(interval);
       events.forEach(event => window.removeEventListener(event, resetTimer));
     };
-  }, [logout, timeout, lastActivity]);
+    
+    // 4. El efecto ya no depende de 'lastActivity', por lo que no se reinicia innecesariamente.
+  }, [logout, timeout, enabled]);
 };
