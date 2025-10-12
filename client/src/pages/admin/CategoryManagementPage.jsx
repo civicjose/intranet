@@ -1,17 +1,16 @@
-// client/src/pages/admin/CategoryManagementPage.jsx
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import apiClient from '../../services/api';
-import { MdEdit, MdDelete } from 'react-icons/md';
-import ErrorMessage from '../../components/ErrorMessage';
-import ConfirmationModal from '../../components/admin/ConfirmationModal';
-// Reutilizaremos el modal de Departamento, ya que la funcionalidad es idéntica
-import DepartmentModal from '../../components/admin/DepartmentModal'; 
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import apiClient from "../../services/api";
+import { MdEdit, MdDelete } from "react-icons/md";
+import AdminPageLayout from "../../components/admin/AdminPageLayout";
+import ErrorMessage from "../../components/ErrorMessage";
+import ConfirmationModal from "../../components/admin/ConfirmationModal";
+import DepartmentModal from "../../components/admin/DepartmentModal"; // Reutilizamos este modal
 
 const CategoryManagementPage = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -21,10 +20,10 @@ const CategoryManagementPage = () => {
   const fetchCategories = async () => {
     try {
       setLoading(true);
-      const { data } = await apiClient.get('/categories');
+      const { data } = await apiClient.get("/categories");
       setCategories(data);
     } catch (err) {
-      setError('No se pudo cargar la lista de categorías.');
+      setError("No se pudo cargar la lista de categorías.");
     } finally {
       setLoading(false);
     }
@@ -34,7 +33,7 @@ const CategoryManagementPage = () => {
     fetchCategories();
   }, []);
 
-  const clearError = () => setTimeout(() => setError(''), 5000);
+  const clearError = () => setTimeout(() => setError(""), 5000);
 
   const handleOpenModal = (cat = null) => {
     setSelectedCategory(cat);
@@ -50,14 +49,16 @@ const CategoryManagementPage = () => {
   const handleSave = async (categoryData) => {
     try {
       if (categoryData.id) {
-        await apiClient.put(`/categories/${categoryData.id}`, { name: categoryData.name });
+        await apiClient.put(`/categories/${categoryData.id}`, {
+          name: categoryData.name,
+        });
       } else {
-        await apiClient.post('/categories', { name: categoryData.name });
+        await apiClient.post("/categories", { name: categoryData.name });
       }
       handleCloseModal();
       fetchCategories();
     } catch (err) {
-      throw err;
+      throw err; // El modal se encarga de mostrar este error
     }
   };
 
@@ -74,7 +75,9 @@ const CategoryManagementPage = () => {
       handleCloseModal();
       fetchCategories();
     } catch (err) {
-      setError(err.response?.data?.message || 'No se pudo borrar la categoría.');
+      setError(
+        err.response?.data?.message || "No se pudo borrar la categoría."
+      );
       clearError();
       handleCloseModal();
     } finally {
@@ -85,38 +88,49 @@ const CategoryManagementPage = () => {
   if (loading) return <div>Cargando categorías...</div>;
 
   return (
-    <div>
-      {error && <div className="mb-4"><ErrorMessage message={error} /></div>}
+    <>
+      <AdminPageLayout
+        title="Gestión de Categorías"
+        subtitle="Añade, edita o elimina las categorías para las noticias."
+        buttonLabel="+ Nueva Categoría"
+        onButtonClick={() => handleOpenModal()}
+        secondaryButtonLabel="&larr; Volver a Noticias"
+        onSecondaryButtonClick={() => window.history.back()}
+      >
+        {error && (
+          <div className="p-4 border-b">
+            <ErrorMessage message={error} />
+          </div>
+        )}
 
-      <header className="mb-8 flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800">Gestión de Categorías</h1>
-          <p className="text-gray-500">Añade, edita o elimina las categorías para las noticias.</p>
-        </div>
-        <div className="flex items-center gap-4">
-            <Link to="/admin/news" className="text-sm font-semibold text-macrosad-pink hover:underline">&larr; Volver a Noticias</Link>
-            <button onClick={() => handleOpenModal()} className="bg-macrosad-pink text-white font-bold py-2 px-4 rounded-lg hover:bg-opacity-90">
-                + Nueva Categoría
-            </button>
-        </div>
-      </header>
-
-      <div className="bg-light-card shadow-md rounded-lg">
         <ul className="divide-y divide-gray-200">
           {categories.map((cat) => (
-            <li key={cat.id} className="p-4 flex justify-between items-center hover:bg-light-bg">
+            <li
+              key={cat.id}
+              className="p-4 flex justify-between items-center hover:bg-light-bg"
+            >
               <span className="font-semibold text-text-dark">{cat.name}</span>
               <div className="space-x-4">
-                <button onClick={() => handleOpenModal(cat)} className="text-indigo-600 hover:text-indigo-900"><MdEdit size={20} /></button>
-                <button onClick={() => handleDeleteClick(cat)} className="text-red-600 hover:text-red-900"><MdDelete size={20} /></button>
+                <button
+                  onClick={() => handleOpenModal(cat)}
+                  className="text-indigo-600 hover:text-indigo-900"
+                >
+                  <MdEdit size={20} />
+                </button>
+                <button
+                  onClick={() => handleDeleteClick(cat)}
+                  className="text-red-600 hover:text-red-900"
+                >
+                  <MdDelete size={20} />
+                </button>
               </div>
             </li>
           ))}
         </ul>
-      </div>
+      </AdminPageLayout>
 
       {isModalOpen && (
-        <DepartmentModal 
+        <DepartmentModal
           department={selectedCategory}
           onSave={handleSave}
           onClose={handleCloseModal}
@@ -124,7 +138,7 @@ const CategoryManagementPage = () => {
       )}
 
       {isDeleteModalOpen && (
-        <ConfirmationModal 
+        <ConfirmationModal
           title="Confirmar Borrado"
           message={`¿Estás seguro de que quieres eliminar la categoría "${selectedCategory?.name}"?`}
           onConfirm={handleConfirmDelete}
@@ -132,7 +146,7 @@ const CategoryManagementPage = () => {
           isLoading={isSaving}
         />
       )}
-    </div>
+    </>
   );
 };
 

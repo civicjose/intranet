@@ -51,7 +51,7 @@ class News {
       JOIN users u ON n.author_id = u.id
       WHERE n.status = 'published'
       ORDER BY n.updated_at DESC
-      LIMIT 5
+      LIMIT 8
     `;
     const [rows] = await db.query(query);
     return rows.map(this.parseCategories); // Usamos la función auxiliar

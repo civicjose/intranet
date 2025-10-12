@@ -1,4 +1,3 @@
-// client/src/App.jsx
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import { useInactivityTimeout } from './hooks/useInactivityTimeout';
@@ -12,19 +11,18 @@ import LoginPage from './pages/LoginPage';
 import VerificationPage from './pages/VerificationPage';
 import CompleteProfilePage from './pages/CompleteProfilePage';
 import DashboardPage from './pages/DashboardPage';
+import ReportsPage from './pages/ReportsPage'; // --- ESTA ES LA LÍNEA QUE FALTABA ---
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import UserManagementPage from './pages/admin/UserManagementPage';
 import DepartmentManagementPage from './pages/admin/DepartmentManagementPage';
 import NewsManagementPage from './pages/admin/NewsManagementPage';
 import NewsEditor from './pages/admin/NewsEditor';
 import CategoryManagementPage from './pages/admin/CategoryManagementPage';
+import AdminReportsPage from './pages/admin/AdminReportsPage';
 
 function App() {
   const { logout, isAuthenticated } = useAuth();
 
-  // --- CORRECCIÓN AQUÍ ---
-  // El hook se llama siempre, pero le pasamos 'isAuthenticated'
-  // para que solo se active cuando el usuario está logueado.
   useInactivityTimeout(logout, 900000, isAuthenticated);
 
   return (
@@ -37,7 +35,11 @@ function App() {
       {/* Rutas Protegidas */}
       {isAuthenticated && (
         <Route element={<AppLayout />}>
+          {/* Rutas para todos los usuarios logueados */}
           <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/reports" element={<ReportsPage />} />
+
+          {/* Rutas de Administración anidadas */}
           <Route path="/admin" element={<AdminDashboardPage />} />
           <Route path="/admin/users" element={<UserManagementPage />} />
           <Route path="/admin/departments" element={<DepartmentManagementPage />} />
@@ -45,6 +47,7 @@ function App() {
           <Route path="/admin/news/new" element={<NewsEditor />} />
           <Route path="/admin/news/edit/:id" element={<NewsEditor />} />
           <Route path="/admin/news/categories" element={<CategoryManagementPage />} />
+          <Route path="/admin/reports" element={<AdminReportsPage />} />
         </Route>
       )}
       
