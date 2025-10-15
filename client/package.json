@@ -10,6 +10,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fullcalendar/daygrid": "^6.1.19",
+    "@fullcalendar/interaction": "^6.1.19",
+    "@fullcalendar/react": "^6.1.19",
     "@tiptap/extension-image": "^3.6.6",
     "@tiptap/react": "^3.6.6",
     "@tiptap/starter-kit": "^3.6.6",

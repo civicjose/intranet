@@ -11,7 +11,10 @@ import LoginPage from './pages/LoginPage';
 import VerificationPage from './pages/VerificationPage';
 import CompleteProfilePage from './pages/CompleteProfilePage';
 import DashboardPage from './pages/DashboardPage';
-import ReportsPage from './pages/ReportsPage'; // --- ESTA ES LA LÍNEA QUE FALTABA ---
+import ReportsPage from './pages/ReportsPage';
+import CalendarPage from './pages/CalendarPage';
+import TicketsPage from './pages/TicketsPage';
+import ResourcesPage from './pages/ResourcesPage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import UserManagementPage from './pages/admin/UserManagementPage';
 import DepartmentManagementPage from './pages/admin/DepartmentManagementPage';
@@ -38,6 +41,9 @@ function App() {
           {/* Rutas para todos los usuarios logueados */}
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/reports" element={<ReportsPage />} />
+          <Route path="/calendar" element={<CalendarPage />} />
+          <Route path="/tickets" element={<TicketsPage />} />
+          <Route path="/resources" element={<ResourcesPage />} /> 
 
           {/* Rutas de Administración anidadas */}
           <Route path="/admin" element={<AdminDashboardPage />} />

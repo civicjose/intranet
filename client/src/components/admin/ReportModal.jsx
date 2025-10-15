@@ -14,9 +14,15 @@ const ReportModal = ({ report, allUsers, onSave, onClose }) => {
   const isEditing = !!report;
 
   useEffect(() => {
-    if (isEditing) {
-      setFormData({ title: report.title, description: report.description, powerbi_url: report.powerbi_url });
-      setSelectedUsers(report.assigned_users?.map(u => u.id) || []);
+    if (isEditing && report) {
+      setFormData({ 
+        title: report.title || '', 
+        description: report.description || '', 
+        powerbi_url: report.powerbi_url || '' 
+      });
+      // --- CORRECCIÓN AQUÍ ---
+      // 'report.assigned_users' ya es un array de IDs, no necesitamos mapearlo.
+      setSelectedUsers(report.assigned_users || []);
     }
   }, [report, isEditing]);
 

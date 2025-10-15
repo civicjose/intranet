@@ -1,0 +1,21 @@
+/* client/src/styles/Calendar.css */
+
+/* --- Variables de color para FullCalendar --- */
+/* Esto se queda exactamente igual */
+:root {
+  --fc-border-color: #e2e8f0;
+  --fc-daygrid-event-dot-width: 8px;
+
+  --fc-event-bg-color: #e5007e;
+  --fc-event-border-color: #e5007e;
+  --fc-event-text-color: #ffffff;
+  
+  --fc-today-bg-color: rgba(229, 0, 126, 0.1);
+
+  --fc-button-bg-color: #6c3b5d;
+  --fc-button-border-color: #6c3b5d;
+  --fc-button-hover-bg-color: #834f74;
+  --fc-button-hover-border-color: #834f74;
+  --fc-button-active-bg-color: #552a49;
+  --fc-button-active-border-color: #552a49;
+}

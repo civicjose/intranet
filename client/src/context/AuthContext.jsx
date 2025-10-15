@@ -1,69 +1,77 @@
 // client/src/context/AuthContext.jsx
-import React,
-{
-    createContext,
-    useState,
-    useContext,
-    useEffect,
-    useCallback
+import React, {
+  createContext,
+  useState,
+  useContext,
+  useEffect,
+  useCallback
 } from 'react';
 import apiClient from '../services/api';
 
-// 1. Creamos el contexto
 const AuthContext = createContext(null);
 
-// 2. Creamos el proveedor del contexto
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [isLoading, setIsLoading] = useState(true); // Para saber si estamos verificando el token inicial
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Función para verificar el token y obtener datos del usuario
+  // La función de logout ahora es más simple: solo limpia el estado y el token.
+  // La navegación se gestiona de forma declarativa en App.jsx
+  const logout = useCallback(() => {
+    console.log("Cerrando sesión y limpiando estado.");
+    localStorage.removeItem('token');
+    setUser(null);
+    delete apiClient.defaults.headers.common['Authorization'];
+  }, []);
+
   const fetchUser = useCallback(async () => {
     const token = localStorage.getItem('token');
     if (token) {
+      apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       try {
         const response = await apiClient.get('/users/me');
         setUser(response.data);
       } catch (error) {
-        console.error("Token inválido o expirado. Cerrando sesión.");
-        localStorage.removeItem('token');
-        setUser(null);
+        console.error("Token inválido o expirado.");
+        logout(); // Si el token es inválido, simplemente llamamos a logout.
       }
     }
     setIsLoading(false);
-  }, []);
+  }, [logout]);
 
-  // Al cargar la app, intentamos obtener el usuario si hay un token
+  // Se ejecuta solo una vez para configurar el oyente de eventos global.
   useEffect(() => {
+    // Al cargar la app, intentamos obtener el usuario si hay un token
     fetchUser();
+    
+    // Escuchamos el evento global 'logout-event' que puede ser disparado desde cualquier lugar.
+    const handleLogoutEvent = () => {
+      logout();
+    };
+
+    window.addEventListener('logout-event', handleLogoutEvent);
+
+    // Limpiamos el listener cuando el componente se desmonte para evitar fugas de memoria.
+    return () => {
+      window.removeEventListener('logout-event', handleLogoutEvent);
+    };
+  }, [fetchUser, logout]);
+
+  // La función de login ahora también configura la cabecera por defecto de apiClient.
+  const login = useCallback(async (token) => {
+    localStorage.setItem('token', token);
+    apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    await fetchUser();
   }, [fetchUser]);
 
-  // Función para iniciar sesión
-  const login = (token) => {
-    localStorage.setItem('token', token);
-    // Volvemos a obtener los datos del usuario para actualizar el estado
-    return fetchUser();
-  };
-
-  // Función para cerrar sesión
-  const logout = () => {
-    localStorage.removeItem('token');
-    setUser(null);
-    // Redirigimos al login
-    window.location.href = '/';
-  };
-
-  // El valor que compartiremos con toda la app
   const value = {
     user,
     setUser,
     login,
     logout,
     isLoading,
-    isAuthenticated: !!user, // Un booleano útil para saber si está autenticado
+    isAuthenticated: !!user,
   };
 
-  // No renderizamos nada hasta que terminemos la carga inicial
   return (
     <AuthContext.Provider value={value}>
       {!isLoading && children}
@@ -71,7 +79,7 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-// 3. Hook personalizado para usar el contexto fácilmente
+// Hook para usar el contexto (sin cambios)
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {

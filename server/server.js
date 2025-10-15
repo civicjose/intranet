@@ -30,6 +30,8 @@ const roleRoutes = require('./routes/roleRoutes');
 const newsRoutes = require('./routes/newsRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
 const reportRoutes = require('./routes/reportRoutes');
+const eventRoutes = require('./routes/eventRoutes');
+const ticketRoutes = require('./routes/ticketRoutes');
 
 // Registro de las rutas en la aplicación
 app.use('/api/auth', authRoutes);
@@ -39,6 +41,8 @@ app.use('/api/roles', roleRoutes);
 app.use('/api/news', newsRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/events', eventRoutes);
+app.use('/api/tickets', ticketRoutes);
 
 
 // --- INICIO DEL SERVIDOR ---
