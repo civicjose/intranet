@@ -5,7 +5,7 @@ import { MdEdit, MdDelete } from "react-icons/md";
 import AdminPageLayout from "../../components/admin/AdminPageLayout";
 import ErrorMessage from "../../components/ErrorMessage";
 import ConfirmationModal from "../../components/admin/ConfirmationModal";
-import DepartmentModal from "../../components/admin/DepartmentModal"; // Reutilizamos este modal
+import DepartmentModal from "../../components/admin/CategoryModal";
 
 const CategoryManagementPage = () => {
   const [categories, setCategories] = useState([]);

@@ -7,6 +7,7 @@ import {
   MdAdminPanelSettings,
   MdArticle,
   MdAssessment,
+  MdCorporateFare,
 } from "react-icons/md";
 
 const AdminDashboardPage = () => {
@@ -32,23 +33,6 @@ const AdminDashboardPage = () => {
         </Link>
 
         <Link
-          to="/admin/departments"
-          className="bg-white p-6 rounded-lg shadow-md hover:shadow-xl hover:scale-105 transform transition-all duration-200 border-l-4 border-macrosad-pink"
-        >
-          <div className="flex items-center">
-            <MdBusiness className="text-4xl text-macrosad-pink mr-4" />
-            <div>
-              <h2 className="text-xl font-semibold text-gray-800">
-                Departamentos
-              </h2>
-              <p className="text-gray-600 mt-1">
-                Crear y editar departamentos.
-              </p>
-            </div>
-          </div>
-        </Link>
-
-        <Link
           to="/admin/news"
           className="bg-white p-6 rounded-lg shadow-md hover:shadow-xl hover:scale-105 transform transition-all duration-200 border-l-4 border-macrosad-pink"
         >
@@ -63,7 +47,6 @@ const AdminDashboardPage = () => {
           </div>
         </Link>
 
-        {/* --- ESTA ES LA TARJETA QUE FALTABA --- */}
         <Link
           to="/admin/reports"
           className="bg-white p-6 rounded-lg shadow-md hover:shadow-xl hover:scale-105 transform transition-all duration-200 border-l-4 border-macrosad-pink"
@@ -74,6 +57,23 @@ const AdminDashboardPage = () => {
               <h2 className="text-xl font-semibold text-gray-800">Informes</h2>
               <p className="text-gray-600 mt-1">
                 Gestionar informes de Power BI.
+              </p>
+            </div>
+          </div>
+        </Link>
+
+        <Link
+          to="/admin/organization"
+          className="bg-white p-6 rounded-lg shadow-md hover:shadow-xl hover:scale-105 transform transition-all duration-200 border-l-4 border-macrosad-pink"
+        >
+          <div className="flex items-center">
+            <MdCorporateFare className="text-4xl text-macrosad-pink mr-4" />
+            <div>
+              <h2 className="text-xl font-semibold text-gray-800">
+                Organización
+              </h2>
+              <p className="text-gray-600 mt-1">
+                Gestionar áreas, puestos, etc.
               </p>
             </div>
           </div>

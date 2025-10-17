@@ -17,11 +17,11 @@ import TicketsPage from './pages/TicketsPage';
 import ResourcesPage from './pages/ResourcesPage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import UserManagementPage from './pages/admin/UserManagementPage';
-import DepartmentManagementPage from './pages/admin/DepartmentManagementPage';
 import NewsManagementPage from './pages/admin/NewsManagementPage';
 import NewsEditor from './pages/admin/NewsEditor';
 import CategoryManagementPage from './pages/admin/CategoryManagementPage';
 import AdminReportsPage from './pages/admin/AdminReportsPage';
+import OrganizationManagementPage from './pages/admin/OrganizationManagementPage';
 
 function App() {
   const { logout, isAuthenticated } = useAuth();
@@ -48,12 +48,12 @@ function App() {
           {/* Rutas de Administración anidadas */}
           <Route path="/admin" element={<AdminDashboardPage />} />
           <Route path="/admin/users" element={<UserManagementPage />} />
-          <Route path="/admin/departments" element={<DepartmentManagementPage />} />
           <Route path="/admin/news" element={<NewsManagementPage />} />
           <Route path="/admin/news/new" element={<NewsEditor />} />
           <Route path="/admin/news/edit/:id" element={<NewsEditor />} />
           <Route path="/admin/news/categories" element={<CategoryManagementPage />} />
           <Route path="/admin/reports" element={<AdminReportsPage />} />
+          <Route path="/admin/organization" element={<OrganizationManagementPage />} />
         </Route>
       )}
       

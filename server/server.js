@@ -7,42 +7,44 @@ const path = require('path');
 const app = express();
 
 // --- MIDDLEWARES GENERALES ---
-app.use(cors());
-
-// Aumentamos el límite del tamaño del payload para aceptar contenido enriquecido de las noticias
+// Usamos la configuración simple de CORS, ya que no necesitamos exponer cabeceras personalizadas.
+app.use(cors()); 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// Hacemos que la carpeta 'uploads' sea accesible públicamente para servir imágenes
+// --- RUTAS DE LA API ---
+// El servidor primero intentará hacer match con todas las rutas de la API.
+app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/departments', require('./routes/departmentRoutes'));
+app.use('/api/users', require('./routes/userRoutes'));
+app.use('/api/roles', require('./routes/roleRoutes'));
+app.use('/api/news', require('./routes/newsRoutes'));
+app.use('/api/categories', require('./routes/categoryRoutes'));
+app.use('/api/reports', require('./routes/reportRoutes'));
+app.use('/api/events', require('./routes/eventRoutes'));
+app.use('/api/tickets', require('./routes/ticketRoutes'));
+app.use('/api/areas', require('./routes/areaRoutes'));
+app.use('/api/territories', require('./routes/territoryRoutes'));
+app.use('/api/positions', require('./routes/positionRoutes'));
+app.use('/api/locations', require('./routes/locationRoutes'));
+app.use('/api/upload', require('./routes/uploadRoutes'));
+
+
+
+// --- CONFIGURACIÓN PARA DESPLIEGUE EN PRODUCCIÓN ---
+
+// 1. Servir los archivos estáticos de la carpeta 'uploads'.
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// 2. Servir la aplicación de React construida (desde la carpeta 'dist' del cliente).
+const clientBuildPath = path.join(__dirname, '../client/dist');
+app.use(express.static(clientBuildPath));
 
-// --- RUTAS DE LA API ---
-app.get('/', (req, res) => {
-    res.json({ message: 'API de Intranet Macrosad funcionando correctamente!' });
+// 3. Redirigir todas las demás peticiones (que no sean de la API) al index.html de React.
+// Esto es crucial para que el enrutamiento del frontend (React Router) funcione correctamente.
+app.get(/^\/((?!api).)*$/, (req, res) => {
+    res.sendFile(path.resolve(clientBuildPath, 'index.html'));
 });
-
-// Importación de todas las rutas
-const authRoutes = require('./routes/authRoutes');
-const departmentRoutes = require('./routes/departmentRoutes');
-const userRoutes = require('./routes/userRoutes');
-const roleRoutes = require('./routes/roleRoutes');
-const newsRoutes = require('./routes/newsRoutes');
-const categoryRoutes = require('./routes/categoryRoutes');
-const reportRoutes = require('./routes/reportRoutes');
-const eventRoutes = require('./routes/eventRoutes');
-const ticketRoutes = require('./routes/ticketRoutes');
-
-// Registro de las rutas en la aplicación
-app.use('/api/auth', authRoutes);
-app.use('/api/departments', departmentRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/roles', roleRoutes);
-app.use('/api/news', newsRoutes);
-app.use('/api/categories', categoryRoutes);
-app.use('/api/reports', reportRoutes);
-app.use('/api/events', eventRoutes);
-app.use('/api/tickets', ticketRoutes);
 
 
 // --- INICIO DEL SERVIDOR ---

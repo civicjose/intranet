@@ -1,11 +1,8 @@
-// server/controllers/userController.js
 const crypto = require("crypto");
-const bcrypt = require("bcryptjs");
-const nodemailer = require("nodemailer");
 const User = require("../models/userModel");
 const Department = require("../models/departmentModel");
+const nodemailer = require("nodemailer");
 
-// Configuración del transporter de Nodemailer
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST,
   port: process.env.EMAIL_PORT,
@@ -16,11 +13,6 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-/**
- * @desc    Obtener los datos del perfil del usuario logueado
- * @route   GET /api/users/me
- * @access  Private
- */
 exports.getUserProfile = async (req, res, next) => {
   if (!req.user) {
     return res.status(404).json({ message: "Usuario no encontrado." });
@@ -40,11 +32,6 @@ exports.getUserProfile = async (req, res, next) => {
   }
 };
 
-/**
- * @desc    Obtener todos los usuarios (Admin)
- * @route   GET /api/users
- * @access  Private/Admin
- */
 exports.getAllUsers = async (req, res, next) => {
   try {
     const users = await User.getAll();
@@ -54,19 +41,12 @@ exports.getAllUsers = async (req, res, next) => {
   }
 };
 
-/**
- * @desc    Crear un nuevo usuario (Admin)
- * @route   POST /api/users
- * @access  Private/Admin
- */
 exports.createUser = async (req, res, next) => {
-  const { email, firstName, lastName, role_id, departments } = req.body;
+  const { email, firstName, lastName, role_id } = req.body;
 
   if (!email || !firstName || !lastName || !role_id) {
     res.status(400);
-    return next(
-      new Error("Faltan campos requeridos: email, nombre, apellidos y rol.")
-    );
+    return next(new Error("Faltan campos requeridos: email, nombre, apellidos y rol."));
   }
 
   try {
@@ -76,25 +56,24 @@ exports.createUser = async (req, res, next) => {
       throw new Error("El usuario con este email ya existe.");
     }
 
-    const setupToken = crypto.randomBytes(32).toString("hex");
-    const hashedToken = crypto
-      .createHash("sha256")
-      .update(setupToken)
-      .digest("hex");
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 horas
+    // Pasamos el body completo al modelo, que ya sabe qué hacer con cada campo.
+    if (req.body.creationMethod === 'direct' && req.body.password) {
+      await User.adminCreateWithPassword(req.body);
+      res.status(201).json({ message: "Usuario creado directamente con éxito." });
+    } else {
+      const setupToken = crypto.randomBytes(32).toString("hex");
+      const hashedToken = crypto.createHash("sha256").update(setupToken).digest("hex");
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-    await User.adminCreate(
-      { email, firstName, lastName, role_id, departments },
-      { hashedCode: hashedToken, expiresAt }
-    );
-
-    const setupUrl = `${process.env.FRONTEND_URL}/complete-profile?token=${setupToken}`;
-
-    await transporter.sendMail({
-      from: `"Intranet Macrosad" <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: "Completa tu perfil en la Intranet de Macrosad",
-      html: `
+      await User.adminCreate(req.body, { hashedCode: hashedToken, expiresAt });
+      
+      const setupUrl = `${process.env.FRONTEND_URL}/complete-profile?token=${setupToken}`;
+      
+      await transporter.sendMail({
+        from: `"Intranet Macrosad" <${process.env.EMAIL_USER}>`,
+        to: email,
+        subject: "Completa tu perfil en la Intranet de Macrosad",
+        html: `
         <!DOCTYPE html>
         <html lang="es">
         <head>
@@ -129,73 +108,42 @@ exports.createUser = async (req, res, next) => {
         </body>
         </html>
       `,
-    });
-
-    res
-      .status(201)
-      .json({
-        message:
-          "Usuario creado exitosamente. Se ha enviado un correo para completar el perfil.",
-      });
+      });      
+      res.status(201).json({ message: "Usuario invitado exitosamente. Se ha enviado un correo." });
+    }
   } catch (error) {
     next(error);
   }
 };
 
-/**
- * @desc    Actualizar un usuario (Admin)
- * @route   PUT /api/users/:id
- * @access  Private/Admin
- */
 exports.updateUser = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { firstName, lastName, email, companyPhone, role_id, departments } =
-      req.body;
-
+    const { firstName, lastName, email, role_id } = req.body;
     if (!firstName || !lastName || !email || !role_id) {
       res.status(400);
-      throw new Error(
-        "Faltan campos requeridos: nombre, apellidos, email y rol."
-      );
+      throw new Error("Faltan campos requeridos: nombre, apellidos, email y rol.");
     }
-
-    await User.update(id, {
-      firstName,
-      lastName,
-      email,
-      company_phone: companyPhone,
-      role_id,
-      departments,
-    });
+    await User.update(id, req.body);
     res.status(200).json({ message: "Usuario actualizado correctamente." });
   } catch (error) {
     next(error);
   }
 };
 
-/**
- * @desc    Borrar un usuario (Admin)
- * @route   DELETE /api/users/:id
- * @access  Private/Admin
- */
 exports.deleteUser = async (req, res, next) => {
   try {
     const userIdToDelete = req.params.id;
     const adminUserId = req.user.id;
-
     if (userIdToDelete == adminUserId) {
       res.status(400);
       throw new Error("No puedes eliminar tu propia cuenta de administrador.");
     }
-
     const user = await User.findById(userIdToDelete);
-
     if (!user) {
       res.status(404);
       throw new Error("Usuario no encontrado.");
     }
-
     await User.delete(userIdToDelete);
     res.status(200).json({ message: "Usuario eliminado correctamente." });
   } catch (error) {
@@ -203,57 +151,35 @@ exports.deleteUser = async (req, res, next) => {
   }
 };
 
-/**
- * @desc    Que el propio usuario actualice su perfil
- * @route   PUT /api/users/me
- * @access  Private
- */
 exports.updateUserProfile = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id);
-
     if (!user) {
       res.status(404);
       throw new Error("Usuario no encontrado.");
     }
-
-    // Creamos el objeto con los datos a actualizar
     const dataToUpdate = {
       firstName: req.body.firstName || user.first_name,
       lastName: req.body.lastName || user.last_name,
       companyPhone: req.body.companyPhone || user.company_phone,
       birthDate: req.body.birthDate || user.birth_date,
     };
-
     await User.updateProfile(req.user.id, dataToUpdate);
-
     res.status(200).json({ message: "Perfil actualizado correctamente." });
   } catch (error) {
     next(error);
   }
 };
 
-/**
- * @desc    Subir/actualizar foto de perfil
- * @route   POST /api/users/me/avatar
- * @access  Private
- */
 exports.uploadAvatar = async (req, res, next) => {
   try {
     if (!req.file) {
       res.status(400);
       throw new Error("No se ha subido ningún archivo.");
     }
-
-    // Construimos la URL completa para guardar en la BBDD
     const avatarUrl = `/uploads/${req.file.filename}`;
-
     await User.updateAvatar(req.user.id, avatarUrl);
-
-    res.status(200).json({
-      message: "Imagen subida correctamente.",
-      avatarUrl: avatarUrl,
-    });
+    res.status(200).json({ message: "Imagen subida correctamente.", avatarUrl });
   } catch (error) {
     next(error);
   }
