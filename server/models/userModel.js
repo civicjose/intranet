@@ -13,7 +13,7 @@ class User {
   }
   static async findById(id) {
     const [rows] = await db.query(
-      "SELECT id, email, first_name, last_name, company_phone, role_id, avatar_url, birth_date FROM users WHERE id = ?",
+      "SELECT id, email, first_name, last_name, company_phone, role_id, avatar_url, birth_date, order_index FROM users WHERE id = ?",
       [id]
     );
     return rows[0];
@@ -102,6 +102,7 @@ class User {
       position_id,
       territory_id,
       location_id,
+      order_index,
     },
     verificationData
   ) {
@@ -111,7 +112,7 @@ class User {
       await connection.beginTransaction();
       const finalAreaId = departments.length > 0 ? null : area_id || null;
       const [result] = await connection.query(
-        "INSERT INTO users (email, first_name, last_name, company_phone, birth_date, role_id, verification_code, verification_code_expires_at, is_verified, area_id, position_id, territory_id, location_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO users (email, first_name, last_name, company_phone, birth_date, role_id, verification_code, verification_code_expires_at, is_verified, area_id, position_id, territory_id, location_id, order_index) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [
           email,
           firstName,
@@ -126,6 +127,7 @@ class User {
           position_id || null,
           territory_id || null,
           location_id || null,
+          order_index || 100
         ]
       );
       const newUserId = result.insertId;
@@ -162,6 +164,7 @@ class User {
     position_id,
     territory_id,
     location_id,
+    order_index,
   }) {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
@@ -170,7 +173,7 @@ class User {
       await connection.beginTransaction();
       const finalAreaId = departments.length > 0 ? null : area_id || null;
       const [result] = await connection.query(
-        "INSERT INTO users (email, first_name, last_name, company_phone, birth_date, role_id, password, is_verified, area_id, position_id, territory_id, location_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO users (email, first_name, last_name, company_phone, birth_date, role_id, password, is_verified, area_id, position_id, territory_id, location_id, order_index) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [
           email,
           firstName,
@@ -184,6 +187,7 @@ class User {
           position_id || null,
           territory_id || null,
           location_id || null,
+          order_index || 100,
         ]
       );
       const newUserId = result.insertId;
@@ -211,9 +215,10 @@ class User {
     const query = `
       SELECT 
         u.id, u.email, u.first_name, u.last_name, u.company_phone, u.birth_date, u.is_verified, 
-        u.role_id, u.avatar_url, u.area_id, u.position_id, u.territory_id, u.location_id,
+        u.role_id, u.avatar_url, u.area_id, u.position_id, u.territory_id, u.location_id, u.order_index,
         r.name as role_name, a.name as area_name, p.name as position_name,
         t.name as territory_name, l.name as location_name,
+        dvs.name as division_name,
         (
           SELECT JSON_ARRAYAGG(JSON_OBJECT('id', d.id, 'name', d.name))
           FROM user_departments ud JOIN departments d ON ud.department_id = d.id
@@ -225,29 +230,24 @@ class User {
       LEFT JOIN positions p ON u.position_id = p.id
       LEFT JOIN territories t ON u.territory_id = t.id
       LEFT JOIN locations l ON u.location_id = l.id
+      LEFT JOIN divisions dvs ON a.division_id = dvs.id
       GROUP BY u.id
-      ORDER BY u.first_name, u.last_name;
+      ORDER BY u.order_index ASC, u.first_name ASC, u.last_name ASC;
     `;
     const [users] = await db.query(query);
     return users.map((user) => {
       let departmentsArray = [];
-      if (typeof user.departments === "string") {
+      if (user.departments && typeof user.departments === "string") {
         try {
           departmentsArray = JSON.parse(user.departments);
+          if (departmentsArray && departmentsArray.length > 0 && departmentsArray[0].id === null) {
+            departmentsArray = [];
+          }
         } catch (e) {
           departmentsArray = [];
         }
-      } else if (Array.isArray(user.departments)) {
-        departmentsArray = user.departments;
       }
-      if (
-        departmentsArray &&
-        departmentsArray[0] &&
-        departmentsArray[0].id === null
-      ) {
-        departmentsArray = [];
-      }
-      return { ...user, departments: departmentsArray };
+      return { ...user, departments: departmentsArray || [] };
     });
   }
 
@@ -257,8 +257,8 @@ class User {
       firstName,
       lastName,
       email,
-      company_phone,
-      birth_date,
+      companyPhone,
+      birthDate,
       role_id,
       departments = [],
       area_id,
@@ -266,6 +266,7 @@ class User {
       territory_id,
       location_id,
       avatar_url,
+      order_index,
     }
   ) {
     const connection = await db.getConnection();
@@ -276,20 +277,21 @@ class User {
       await connection.query(
         `UPDATE users SET 
           first_name = ?, last_name = ?, email = ?, company_phone = ?, birth_date = ?, role_id = ?,
-          area_id = ?, territory_id = ?, position_id = ?, location_id = ?, avatar_url = ?
+          area_id = ?, territory_id = ?, position_id = ?, location_id = ?, avatar_url = ?, order_index = ?
          WHERE id = ?`,
         [
           firstName,
           lastName,
           email,
-          company_phone || null,
-          birth_date || null,
+          companyPhone || null,
+          birthDate || null,
           role_id,
           finalAreaId,
           territory_id || null,
           position_id || null,
           location_id || null,
           avatar_url,
+          order_index || 100,
           userId,
         ]
       );

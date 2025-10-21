@@ -5,16 +5,17 @@ const {
     getDepartments, 
     createDepartment, 
     updateDepartment, 
-    deleteDepartment 
+    deleteDepartment,
+    reorder
 } = require('../controllers/departmentController');
 const { protect, admin } = require('../middleware/authMiddleware');
 
-// La ruta raíz ahora maneja GET (público o protegido, según prefieras) y POST (admin)
 router.route('/')
     .get(getDepartments) 
     .post(protect, admin, createDepartment);
 
-// Las rutas con ID manejan PUT y DELETE (admin)
+router.put('/reorder', protect, admin, reorder); // <-- Ruta para reordenar
+
 router.route('/:id')
     .put(protect, admin, updateDepartment)
     .delete(protect, admin, deleteDepartment);

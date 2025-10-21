@@ -4,8 +4,8 @@ import { MdClose } from 'react-icons/md';
 import { FaSpinner } from 'react-icons/fa';
 import ErrorMessage from '../../ErrorMessage';
 
-const AreaModal = ({ area, onSave, onClose }) => {
-  const [name, setName] = useState('');
+const AreaModal = ({ area, divisions, onSave, onClose }) => {
+  const [formData, setFormData] = useState({ name: '', division_id: '' });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -13,16 +13,23 @@ const AreaModal = ({ area, onSave, onClose }) => {
 
   useEffect(() => {
     if (isEditing) {
-      setName(area.name);
+      setFormData({
+        name: area.name || '',
+        division_id: area.division_id || '',
+      });
     }
   }, [area, isEditing]);
+
+  const handleChange = (e) => {
+    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
     try {
-      await onSave({ id: area?.id, name });
+      await onSave({ id: area?.id, ...formData });
     } catch (err) {
       setError(err.response?.data?.message || 'Ha ocurrido un error.');
     } finally {
@@ -32,33 +39,30 @@ const AreaModal = ({ area, onSave, onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-lg shadow-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+      <div className="bg-white rounded-lg shadow-2xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
         <header className="flex justify-between items-center p-5 border-b bg-gray-50 rounded-t-lg">
-          <h2 className="text-xl font-bold text-gray-800">
-            {isEditing ? 'Editar Área' : 'Añadir Nueva Área'}
-          </h2>
+          <h2 className="text-xl font-bold text-gray-800">{isEditing ? 'Editar Área' : 'Nueva Área'}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-800"><MdClose size={24} /></button>
         </header>
         <form onSubmit={handleSubmit}>
-          <div className="p-6">
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Nombre del Área</label>
-            <input
-              type="text"
-              name="name"
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-md"
-              required
-              autoFocus
-            />
-            {error && <div className="mt-2"><ErrorMessage message={error} /></div>}
+          <div className="p-6 space-y-4">
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Nombre del Área</label>
+              <input type="text" name="name" id="name" value={formData.name} onChange={handleChange} className="w-full p-2 border border-gray-300 rounded-md" required />
+            </div>
+            <div>
+              <label htmlFor="division_id" className="block text-sm font-medium text-gray-700 mb-1">División</label>
+              <select name="division_id" id="division_id" value={formData.division_id} onChange={handleChange} className="w-full p-2 border border-gray-300 rounded-md">
+                <option value="">-- Sin división --</option>
+                {divisions.map(div => (<option key={div.id} value={div.id}>{div.name}</option>))}
+              </select>
+            </div>
+            {error && <ErrorMessage message={error} />}
           </div>
-          <footer className="flex justify-end p-5 border-t bg-gray-50 rounded-b-lg">
-            <button type="button" onClick={onClose} className="bg-white border border-gray-300 font-bold py-2 px-4 rounded-lg mr-2 hover:bg-gray-100">Cancelar</button>
-            <button type="submit" disabled={isLoading} className="bg-macrosad-pink text-white font-bold py-2 px-4 rounded-lg flex items-center disabled:opacity-50">
-              {isLoading && <FaSpinner className="animate-spin mr-2" />}
-              Guardar
+          <footer className="flex justify-end p-5 border-t bg-gray-50">
+            <button type="button" onClick={onClose} className="bg-white border font-bold py-2 px-4 rounded-lg mr-2">Cancelar</button>
+            <button type="submit" disabled={isLoading} className="bg-macrosad-pink text-white font-bold py-2 px-4 rounded-lg flex items-center">
+              {isLoading && <FaSpinner className="animate-spin mr-2" />}Guardar
             </button>
           </footer>
         </form>

@@ -16,9 +16,8 @@ const DashboardHeader = () => {
     // --- CORRECCIÓN: Aplicamos el degradado corporativo ---
     <div className="bg-gradient-to-r from-macrosad-purple to-macrosad-pink p-6 rounded-xl shadow-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 text-white">
       
-      {/* Saludo (con texto claro) */}
       <div>
-        <h2 className="text-2xl font-bold">{getGreeting()}, {user?.first_name}!</h2>
+        <h2 className="text-2xl font-bold">¡{getGreeting()}, {user?.first_name}!</h2>
         <p className="text-purple-100 opacity-90">Aquí tienes un resumen de las últimas novedades.</p>
       </div>
       

@@ -3,7 +3,7 @@ const db = require('../config/database');
 
 class Location {
   static async getAll() {
-    const [rows] = await db.query('SELECT * FROM locations ORDER BY type, name ASC');
+    const [rows] = await db.query('SELECT * FROM locations ORDER BY order_index ASC, type ASC, name ASC');
     return rows;
   }
 
@@ -13,19 +13,19 @@ class Location {
   }
 
   static async create(data) {
-    const { name, address, city, province, postal_code, type } = data;
+    const { name, address, city, province, postal_code, type, order_index } = data;
     const [result] = await db.query(
-      'INSERT INTO locations (name, address, city, province, postal_code, type) VALUES (?, ?, ?, ?, ?, ?)',
-      [name, address, city, province, postal_code, type]
+      'INSERT INTO locations (name, address, city, province, postal_code, type, order_index) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [name, address, city, province, postal_code, type, order_index || 100]
     );
     return { id: result.insertId, ...data };
   }
 
   static async update(id, data) {
-    const { name, address, city, province, postal_code, type } = data;
+    const { name, address, city, province, postal_code, type, order_index } = data;
     await db.query(
-      'UPDATE locations SET name = ?, address = ?, city = ?, province = ?, postal_code = ?, type = ? WHERE id = ?',
-      [name, address, city, province, postal_code, type, id]
+      'UPDATE locations SET name = ?, address = ?, city = ?, province = ?, postal_code = ?, type = ?, order_index = ? WHERE id = ?',
+      [name, address, city, province, postal_code, type, order_index || 100, id]
     );
     return { id, ...data };
   }
@@ -36,6 +36,25 @@ class Location {
       throw new Error('No se puede eliminar una ubicación con usuarios asignados.');
     }
     await db.query('DELETE FROM locations WHERE id = ?', [id]);
+  }
+
+  // --- MÉTODO AÑADIDO ---
+  static async reorder(orderedIds) {
+    const connection = await db.getConnection();
+    try {
+      await connection.beginTransaction();
+      await Promise.all(
+        orderedIds.map((id, index) => 
+          connection.query('UPDATE locations SET order_index = ? WHERE id = ?', [index + 1, id])
+        )
+      );
+      await connection.commit();
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
   }
 }
 module.exports = Location;

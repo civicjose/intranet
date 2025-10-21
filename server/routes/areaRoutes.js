@@ -10,6 +10,8 @@ router.route('/')
   .get(areaController.getAll)
   .post(areaController.create);
 
+router.put('/reorder', areaController.reorder);
+
 router.route('/:id')
   .put(areaController.update)
   .delete(areaController.delete);

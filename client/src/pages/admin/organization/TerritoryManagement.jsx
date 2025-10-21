@@ -1,10 +1,33 @@
 // client/src/pages/admin/organization/TerritoryManagement.jsx
 import React, { useState, useEffect } from "react";
 import apiClient from "../../../services/api";
-import { MdEdit, MdDelete } from "react-icons/md";
+import { MdEdit, MdDelete, MdDragIndicator } from "react-icons/md";
 import ConfirmationModal from "../../../components/admin/ConfirmationModal";
 import ErrorMessage from "../../../components/ErrorMessage";
 import TerritoryModal from "../../../components/admin/organization/TerritoryModal";
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+const DraggableRow = ({ item, onEdit, onDelete }) => {
+    const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: item.id });
+    const style = { transform: CSS.Transform.toString(transform), transition };
+
+    return (
+        <tr ref={setNodeRef} style={style} {...attributes}>
+            <td className="px-6 py-4 whitespace-nowrap">
+                <div className="flex items-center">
+                    <button {...listeners} className="cursor-grab text-gray-400 mr-4 p-2"><MdDragIndicator size={20} /></button>
+                    <span className="font-semibold text-text-dark">{item.name}</span>
+                </div>
+            </td>
+            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4">
+                <button onClick={() => onEdit(item)} className="text-indigo-600 hover:text-indigo-900"><MdEdit size={22} /></button>
+                <button onClick={() => onDelete(item)} className="text-red-600 hover:text-red-900"><MdDelete size={22} /></button>
+            </td>
+        </tr>
+    );
+};
 
 const TerritoryManagement = () => {
   const [territories, setTerritories] = useState([]);
@@ -43,10 +66,12 @@ const TerritoryManagement = () => {
 
   const handleSave = async (data) => {
     try {
+      // El payload ya no necesita order_index
+      const payload = { name: data.name };
       if (data.id) {
-        await apiClient.put(`/territories/${data.id}`, { name: data.name });
+        await apiClient.put(`/territories/${data.id}`, payload);
       } else {
-        await apiClient.post("/territories", { name: data.name });
+        await apiClient.post("/territories", payload);
       }
       handleCloseModal();
       fetchData();
@@ -73,6 +98,24 @@ const TerritoryManagement = () => {
     }
   };
 
+  const sensors = useSensors(useSensor(PointerSensor));
+  const handleDragEnd = async (event) => {
+      const { active, over } = event;
+      if (active.id !== over.id) {
+          const oldIndex = territories.findIndex((t) => t.id === active.id);
+          const newIndex = territories.findIndex((t) => t.id === over.id);
+          const newOrder = arrayMove(territories, oldIndex, newIndex);
+          setTerritories(newOrder);
+          try {
+              const orderedIds = newOrder.map(t => t.id);
+              await apiClient.put('/territories/reorder', { orderedIds });
+          } catch (err) {
+              setError("No se pudo guardar el nuevo orden.");
+              fetchData();
+          }
+      }
+  };
+
   if (loading) return <div>Cargando territorios...</div>;
 
   return (
@@ -86,44 +129,24 @@ const TerritoryManagement = () => {
 
       {error && <div className="mb-4"><ErrorMessage message={error} /></div>}
       
-      {/* --- VISTA DE TABLA PARA ESCRITORIO --- */}
-      <div className="hidden md:block bg-white border border-gray-200 rounded-lg overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
-              <th className="relative px-6 py-3"><span className="sr-only">Acciones</span></th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {territories.map((item) => (
-              <tr key={item.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="font-semibold text-text-dark">{item.name}</span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4">
-                  <button onClick={() => handleOpenModal(item)} className="text-indigo-600 hover:text-indigo-900"><MdEdit size={22} /></button>
-                  <button onClick={() => handleDeleteClick(item)} className="text-red-600 hover:text-red-900"><MdDelete size={22} /></button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* --- VISTA DE TARJETAS PARA MÓVIL --- */}
-      <div className="md:hidden grid grid-cols-1 gap-4">
-        {territories.map((item) => (
-          <div key={item.id} className="bg-white rounded-lg border border-gray-200 p-4">
-            <div className="flex justify-between items-start">
-                <span className="font-semibold text-text-dark break-all pr-4">{item.name}</span>
-                <div className="flex space-x-3 flex-shrink-0">
-                    <button onClick={() => handleOpenModal(item)} className="text-indigo-600 hover:text-indigo-900"><MdEdit size={22} /></button>
-                    <button onClick={() => handleDeleteClick(item)} className="text-red-600 hover:text-red-900"><MdDelete size={22} /></button>
-                </div>
-            </div>
-          </div>
-        ))}
+      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                    <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+                        <th className="relative px-6 py-3"><span className="sr-only">Acciones</span></th>
+                    </tr>
+                </thead>
+                <SortableContext items={territories.map(t => t.id)} strategy={verticalListSortingStrategy}>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                        {territories.map((item) => (
+                            <DraggableRow key={item.id} item={item} onEdit={handleOpenModal} onDelete={handleDeleteClick} />
+                        ))}
+                    </tbody>
+                </SortableContext>
+            </table>
+        </DndContext>
       </div>
 
       {isModalOpen && <TerritoryModal territory={selectedItem} onSave={handleSave} onClose={handleCloseModal} />}

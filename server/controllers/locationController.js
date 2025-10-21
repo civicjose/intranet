@@ -9,8 +9,6 @@ exports.getAll = async (req, res, next) => {
 };
 
 exports.create = async (req, res, next) => {
-    // CORRECCIÓN: El modelo de Location SÍ espera un objeto, por lo que req.body está bien,
-    // pero añadimos validación.
     const { name, type } = req.body;
     if (!name || !type) {
         res.status(400);
@@ -42,6 +40,19 @@ exports.delete = async (req, res, next) => {
         if (error.message.includes('asignados')) {
             res.status(400);
         }
+        next(error);
+    }
+};
+
+exports.reorder = async (req, res, next) => {
+    const { orderedIds } = req.body;
+    if (!Array.isArray(orderedIds)) {
+        return res.status(400).json({ message: 'Se esperaba un array de IDs.' });
+    }
+    try {
+        await Location.reorder(orderedIds);
+        res.status(200).json({ message: 'Orden de ubicaciones actualizado correctamente.' });
+    } catch (error) {
         next(error);
     }
 };

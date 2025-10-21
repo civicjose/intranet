@@ -6,16 +6,10 @@ import ErrorMessage from '../../ErrorMessage';
 
 const LocationModal = ({ location, onSave, onClose }) => {
   const [formData, setFormData] = useState({
-    name: '',
-    address: '',
-    city: '',
-    province: '',
-    postal_code: '',
-    type: 'centro'
+    name: '', address: '', city: '', province: '', postal_code: '', type: 'centro'
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-
   const isEditing = !!location;
 
   useEffect(() => {
@@ -26,7 +20,7 @@ const LocationModal = ({ location, onSave, onClose }) => {
         city: location.city || '',
         province: location.province || '',
         postal_code: location.postal_code || '',
-        type: location.type || 'centro'
+        type: location.type || 'centro',
       });
     }
   }, [location, isEditing]);
@@ -60,8 +54,8 @@ const LocationModal = ({ location, onSave, onClose }) => {
         <form onSubmit={handleSubmit}>
           <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700">Nombre</label>
-              <input type="text" name="name" value={formData.name} onChange={handleChange} className="mt-1 w-full p-2 border rounded-md" required autoFocus />
+                <label className="block text-sm font-medium text-gray-700">Nombre</label>
+                <input type="text" name="name" value={formData.name} onChange={handleChange} className="mt-1 w-full p-2 border rounded-md" required autoFocus />
             </div>
              <div>
               <label className="block text-sm font-medium text-gray-700">Tipo</label>

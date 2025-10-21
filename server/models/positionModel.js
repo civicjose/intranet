@@ -3,7 +3,7 @@ const db = require('../config/database');
 
 class Position {
   static async getAll() {
-    const [rows] = await db.query('SELECT * FROM positions ORDER BY name ASC');
+    const [rows] = await db.query('SELECT * FROM positions ORDER BY order_index ASC, name ASC');
     return rows;
   }
 
@@ -12,14 +12,14 @@ class Position {
     return rows[0];
   }
 
-  static async create(name) {
-    const [result] = await db.query('INSERT INTO positions (name) VALUES (?)', [name]);
-    return { id: result.insertId, name };
+  static async create({ name, order_index }) {
+    const [result] = await db.query('INSERT INTO positions (name, order_index) VALUES (?, ?)', [name, order_index || 100]);
+    return { id: result.insertId, name, order_index };
   }
 
-  static async update(id, name) {
-    await db.query('UPDATE positions SET name = ? WHERE id = ?', [name, id]);
-    return { id, name };
+  static async update(id, { name, order_index }) {
+    await db.query('UPDATE positions SET name = ?, order_index = ? WHERE id = ?', [name, order_index || 100, id]);
+    return { id, name, order_index };
   }
 
   static async delete(id) {
@@ -28,6 +28,25 @@ class Position {
       throw new Error('No se puede eliminar un puesto con usuarios asignados.');
     }
     await db.query('DELETE FROM positions WHERE id = ?', [id]);
+  }
+
+  // --- MÉTODO AÑADIDO ---
+  static async reorder(orderedIds) {
+    const connection = await db.getConnection();
+    try {
+      await connection.beginTransaction();
+      await Promise.all(
+        orderedIds.map((id, index) => 
+          connection.query('UPDATE positions SET order_index = ? WHERE id = ?', [index + 1, id])
+        )
+      );
+      await connection.commit();
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
   }
 }
 module.exports = Position;

@@ -1,19 +1,23 @@
 // client/src/pages/admin/OrganizationManagementPage.jsx
 import React, { useState } from 'react';
-import { MdCorporateFare, MdBusiness, MdTerrain, MdWork, MdLocationOn } from 'react-icons/md';
+import { MdCorporateFare, MdBusiness, MdTerrain, MdWork, MdLocationOn, MdSplitscreen } from 'react-icons/md';
 
+// Importamos todos los componentes de gestión
+import DivisionManagement from './organization/DivisionManagement';
 import DepartmentManagement from './organization/DepartmentManagement';
 import AreaManagement from './organization/AreaManagement';
 import TerritoryManagement from './organization/TerritoryManagement';
 import PositionManagement from './organization/PositionManagement';
 import LocationManagement from './organization/LocationManagement';
 
+// Definimos las pestañas en el orden solicitado
 const TABS = [
-  { name: 'Departamentos', icon: <MdBusiness /> },
+  { name: 'Divisiones', icon: <MdSplitscreen /> },
   { name: 'Áreas', icon: <MdCorporateFare /> },
+  { name: 'Departamentos', icon: <MdBusiness /> },
   { name: 'Territorios', icon: <MdTerrain /> },
-  { name: 'Puestos', icon: <MdWork /> },
-  { name: 'Ubicaciones', icon: <MdLocationOn /> }
+  { name: 'Ubicaciones', icon: <MdLocationOn /> },
+  { name: 'Puestos', icon: <MdWork /> }
 ];
 
 const OrganizationManagementPage = () => {
@@ -21,11 +25,12 @@ const OrganizationManagementPage = () => {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'Departamentos': return <DepartmentManagement />;
+      case 'Divisiones': return <DivisionManagement />;
       case 'Áreas': return <AreaManagement />;
+      case 'Departamentos': return <DepartmentManagement />;
       case 'Territorios': return <TerritoryManagement />;
-      case 'Puestos': return <PositionManagement />;
       case 'Ubicaciones': return <LocationManagement />;
+      case 'Puestos': return <PositionManagement />;
       default: return null;
     }
   };
@@ -38,9 +43,8 @@ const OrganizationManagementPage = () => {
       </header>
       
       <div className="bg-light-card shadow-md rounded-lg">
-        {/* Contenedor de Pestañas con nuevo diseño */}
         <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-6 px-6" aria-label="Tabs">
+          <nav className="-mb-px flex space-x-6 px-6 overflow-x-auto" aria-label="Tabs">
             {TABS.map((tab) => (
               <button
                 key={tab.name}
@@ -58,7 +62,6 @@ const OrganizationManagementPage = () => {
           </nav>
         </div>
         
-        {/* Contenedor del contenido con padding */}
         <div className="p-6">
           {renderContent()}
         </div>

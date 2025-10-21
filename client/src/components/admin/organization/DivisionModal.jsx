@@ -1,28 +1,29 @@
-// client/src/components/admin/organization/PositionModal.jsx
+// client/src/components/admin/organization/DivisionModal.jsx
 import React, { useState, useEffect } from 'react';
 import { MdClose } from 'react-icons/md';
 import { FaSpinner } from 'react-icons/fa';
 import ErrorMessage from '../../ErrorMessage';
 
-const PositionModal = ({ position, onSave, onClose }) => {
+const DivisionModal = ({ division, onSave, onClose }) => {
   const [name, setName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const isEditing = !!position;
+  const isEditing = !!division;
 
   useEffect(() => {
     if (isEditing) {
-      setName(position.name || '');
+      setName(division.name);
     }
-  }, [position, isEditing]);
+  }, [division, isEditing]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
     try {
-      await onSave({ id: position?.id, name });
+      // El payload ya no necesita order_index
+      await onSave({ id: division?.id, name });
     } catch (err) {
       setError(err.response?.data?.message || 'Ha ocurrido un error.');
     } finally {
@@ -35,13 +36,13 @@ const PositionModal = ({ position, onSave, onClose }) => {
       <div className="bg-white rounded-lg shadow-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
         <header className="flex justify-between items-center p-5 border-b bg-gray-50 rounded-t-lg">
           <h2 className="text-xl font-bold text-gray-800">
-            {isEditing ? 'Editar Puesto' : 'Añadir Nuevo Puesto'}
+            {isEditing ? 'Editar División' : 'Añadir Nueva División'}
           </h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-800"><MdClose size={24} /></button>
         </header>
         <form onSubmit={handleSubmit}>
           <div className="p-6">
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Nombre del Puesto</label>
+            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Nombre de la División</label>
             <input
               type="text"
               name="name"
@@ -67,4 +68,4 @@ const PositionModal = ({ position, onSave, onClose }) => {
   );
 };
 
-export default PositionModal;
+export default DivisionModal;

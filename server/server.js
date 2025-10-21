@@ -28,6 +28,7 @@ app.use('/api/territories', require('./routes/territoryRoutes'));
 app.use('/api/positions', require('./routes/positionRoutes'));
 app.use('/api/locations', require('./routes/locationRoutes'));
 app.use('/api/upload', require('./routes/uploadRoutes'));
+app.use('/api/divisions', require('./routes/divisionRoutes'));
 
 
 

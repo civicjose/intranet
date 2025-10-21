@@ -1,10 +1,33 @@
 // client/src/pages/admin/organization/PositionManagement.jsx
 import React, { useState, useEffect } from "react";
 import apiClient from "../../../services/api";
-import { MdEdit, MdDelete } from "react-icons/md";
+import { MdEdit, MdDelete, MdDragIndicator } from "react-icons/md";
 import ConfirmationModal from "../../../components/admin/ConfirmationModal";
 import ErrorMessage from "../../../components/ErrorMessage";
 import PositionModal from "../../../components/admin/organization/PositionModal";
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+const DraggableRow = ({ item, onEdit, onDelete }) => {
+    const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: item.id });
+    const style = { transform: CSS.Transform.toString(transform), transition };
+
+    return (
+        <tr ref={setNodeRef} style={style} {...attributes}>
+            <td className="px-6 py-4 whitespace-nowrap">
+                <div className="flex items-center">
+                    <button {...listeners} className="cursor-grab text-gray-400 mr-4 p-2"><MdDragIndicator size={20} /></button>
+                    <span className="font-semibold text-text-dark">{item.name}</span>
+                </div>
+            </td>
+            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4">
+                <button onClick={() => onEdit(item)} className="text-indigo-600 hover:text-indigo-900"><MdEdit size={22} /></button>
+                <button onClick={() => onDelete(item)} className="text-red-600 hover:text-red-900"><MdDelete size={22} /></button>
+            </td>
+        </tr>
+    );
+};
 
 const PositionManagement = () => {
   const [positions, setPositions] = useState([]);
@@ -43,10 +66,11 @@ const PositionManagement = () => {
 
   const handleSave = async (data) => {
     try {
+      const payload = { name: data.name }; // El payload ya no necesita order_index
       if (data.id) {
-        await apiClient.put(`/positions/${data.id}`, { name: data.name });
+        await apiClient.put(`/positions/${data.id}`, payload);
       } else {
-        await apiClient.post("/positions", { name: data.name });
+        await apiClient.post("/positions", payload);
       }
       handleCloseModal();
       fetchData();
@@ -73,6 +97,24 @@ const PositionManagement = () => {
     }
   };
 
+  const sensors = useSensors(useSensor(PointerSensor));
+  const handleDragEnd = async (event) => {
+      const { active, over } = event;
+      if (active.id !== over.id) {
+          const oldIndex = positions.findIndex((p) => p.id === active.id);
+          const newIndex = positions.findIndex((p) => p.id === over.id);
+          const newOrder = arrayMove(positions, oldIndex, newIndex);
+          setPositions(newOrder);
+          try {
+              const orderedIds = newOrder.map(p => p.id);
+              await apiClient.put('/positions/reorder', { orderedIds });
+          } catch (err) {
+              setError("No se pudo guardar el nuevo orden.");
+              fetchData();
+          }
+      }
+  };
+
   if (loading) return <div>Cargando puestos...</div>;
 
   return (
@@ -86,44 +128,24 @@ const PositionManagement = () => {
 
       {error && <div className="mb-4"><ErrorMessage message={error} /></div>}
       
-      {/* --- VISTA DE TABLA PARA ESCRITORIO --- */}
-      <div className="hidden md:block bg-white border border-gray-200 rounded-lg overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
-              <th className="relative px-6 py-3"><span className="sr-only">Acciones</span></th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {positions.map((item) => (
-              <tr key={item.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="font-semibold text-text-dark">{item.name}</span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4">
-                  <button onClick={() => handleOpenModal(item)} className="text-indigo-600 hover:text-indigo-900"><MdEdit size={22} /></button>
-                  <button onClick={() => handleDeleteClick(item)} className="text-red-600 hover:text-red-900"><MdDelete size={22} /></button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* --- VISTA DE TARJETAS PARA MÓVIL --- */}
-      <div className="md:hidden grid grid-cols-1 gap-4">
-        {positions.map((item) => (
-          <div key={item.id} className="bg-white rounded-lg border border-gray-200 p-4">
-            <div className="flex justify-between items-start">
-                <span className="font-semibold text-text-dark break-all pr-4">{item.name}</span>
-                <div className="flex space-x-3 flex-shrink-0">
-                    <button onClick={() => handleOpenModal(item)} className="text-indigo-600 hover:text-indigo-900"><MdEdit size={22} /></button>
-                    <button onClick={() => handleDeleteClick(item)} className="text-red-600 hover:text-red-900"><MdDelete size={22} /></button>
-                </div>
-            </div>
-          </div>
-        ))}
+      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                    <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+                        <th className="relative px-6 py-3"><span className="sr-only">Acciones</span></th>
+                    </tr>
+                </thead>
+                <SortableContext items={positions.map(p => p.id)} strategy={verticalListSortingStrategy}>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                        {positions.map((item) => (
+                            <DraggableRow key={item.id} item={item} onEdit={handleOpenModal} onDelete={handleDeleteClick} />
+                        ))}
+                    </tbody>
+                </SortableContext>
+            </table>
+        </DndContext>
       </div>
 
       {isModalOpen && <PositionModal position={selectedItem} onSave={handleSave} onClose={handleCloseModal} />}

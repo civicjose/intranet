@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import Footer from './Footer';
 
 const AppLayout = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
@@ -34,6 +35,7 @@ const AppLayout = () => {
             <Outlet />
           </div>
         </main>
+        <Footer />
       </div>
     </div>
   );

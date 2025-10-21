@@ -22,6 +22,7 @@ import NewsEditor from './pages/admin/NewsEditor';
 import CategoryManagementPage from './pages/admin/CategoryManagementPage';
 import AdminReportsPage from './pages/admin/AdminReportsPage';
 import OrganizationManagementPage from './pages/admin/OrganizationManagementPage';
+import DirectoryPage from './pages/DirectoryPage';
 
 function App() {
   const { logout, isAuthenticated } = useAuth();
@@ -43,7 +44,8 @@ function App() {
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/calendar" element={<CalendarPage />} />
           <Route path="/tickets" element={<TicketsPage />} />
-          <Route path="/resources" element={<ResourcesPage />} /> 
+          <Route path="/resources" element={<ResourcesPage />} />
+          <Route path="/directory" element={<DirectoryPage />} />
 
           {/* Rutas de Administración anidadas */}
           <Route path="/admin" element={<AdminDashboardPage />} />
