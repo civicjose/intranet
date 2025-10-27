@@ -1,3 +1,4 @@
+// server/controllers/userController.js
 const crypto = require("crypto");
 const User = require("../models/userModel");
 const Department = require("../models/departmentModel");
@@ -20,16 +21,31 @@ exports.getUserProfile = async (req, res, next) => {
   try {
     const userProfileData = await User.findById(req.user.id);
     const departments = await Department.findByUserId(req.user.id);
+    const is_supervisor = await User.isSupervisor(req.user.id);
 
     if (!userProfileData) {
       return res.status(404).json({ message: "Usuario no encontrado." });
     }
 
-    const userProfile = { ...userProfileData, departments: departments };
+    const userProfile = {
+        ...userProfileData,
+        departments: departments,
+        is_supervisor: is_supervisor
+    };
+
     res.status(200).json(userProfile);
   } catch (error) {
     next(error);
   }
+};
+
+exports.getMyTeam = async (req, res, next) => {
+    try {
+        const teamMembers = await User.findSubordinatesBySupervisorId(req.user.id);
+        res.status(200).json(teamMembers);
+    } catch (error) {
+        next(error);
+    }
 };
 
 exports.getAllUsers = async (req, res, next) => {
@@ -56,7 +72,6 @@ exports.createUser = async (req, res, next) => {
       throw new Error("El usuario con este email ya existe.");
     }
 
-    // Pasamos el body completo al modelo, que ya sabe qué hacer con cada campo.
     if (req.body.creationMethod === 'direct' && req.body.password) {
       await User.adminCreateWithPassword(req.body);
       res.status(201).json({ message: "Usuario creado directamente con éxito." });
@@ -183,4 +198,17 @@ exports.uploadAvatar = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+};
+
+exports.reorderUsers = async (req, res, next) => {
+    const { orderedIds } = req.body;
+    if (!Array.isArray(orderedIds)) {
+        return res.status(400).json({ message: 'Se esperaba un array de IDs.' });
+    }
+    try {
+        await User.reorder(orderedIds);
+        res.status(200).json({ message: 'Orden de usuarios actualizado correctamente.' });
+    } catch (error) {
+        next(error);
+    }
 };

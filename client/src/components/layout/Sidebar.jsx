@@ -29,6 +29,12 @@ const Sidebar = () => {
           <MdOutlineDashboard className="mr-3" size={22} />
           Inicio
         </NavLink>
+        {user && user.is_supervisor && (
+        <NavLink to="/my-team" className={({ isActive }) => `${linkClasses} ${isActive ? activeLinkClasses : ''}`}>
+          <MdOutlinePeople className="mr-3" size={22} />
+          Mi Equipo
+        </NavLink>
+        )}
         <NavLink to="/resources" className={({ isActive }) => `${linkClasses} ${isActive ? activeLinkClasses : ''}`}>
           <MdOutlineFolder className="mr-3" size={22} />
           Recursos

@@ -20,129 +20,99 @@ const OrgUserCard = ({ user }) => {
     );
 };
 
-const OrgChart = ({ users, departments, areas, divisions, positions }) => { // <-- Recibe `positions`
+const OrgChart = ({ users, departments, areas, divisions, positions }) => {
 
     const orgData = useMemo(() => {
-        const departmentMap = new Map(departments.map(dept => [dept.id, dept]));
-        const areaMap = new Map(areas.map(area => [area.id, area]));
-        const divisionMap = new Map(divisions.map(div => [div.id, div]));
-        const positionMap = new Map(positions.map(pos => [pos.id, pos])); // <-- Mapa de Puestos
-        const data = {};
+        const positionMap = new Map(positions.map(pos => [pos.id, pos]));
+        
+        const sortUsers = (userArray) => userArray.sort((a, b) => {
+            const orderA = positionMap.get(a.position_id)?.order_index || 100;
+            const orderB = positionMap.get(b.position_id)?.order_index || 100;
+            if (orderA === orderB) return (a.order_index || 100) - (b.order_index || 100);
+            return orderA - orderB;
+        });
 
-        // 1. Agrupación inicial (sin ordenar)
+        const hierarchy = divisions.map(division => ({
+            ...division,
+            areas: areas.filter(area => area.division_id === division.id).map(area => ({
+                ...area,
+                directMembers: [], // Usuarios directamente en el área
+                departments: departments.filter(dept => dept.area_id === area.id).map(dept => ({
+                    ...dept,
+                    members: [] // Usuarios en el departamento
+                }))
+            }))
+        }));
+
         users.forEach(user => {
-            let finalAreaId = user.area_id;
-            if (!finalAreaId && user.departments?.length > 0) {
-                const department = departmentMap.get(user.departments[0].id);
-                if (department) finalAreaId = department.area_id;
-            }
+            const userArea = user.area_id ? hierarchy.flatMap(d => d.areas).find(a => a.id === user.area_id) : null;
             
-            let finalDivisionId = null;
-            let areaName = 'Sin Área Asignada';
-            if (finalAreaId) {
-                const area = areaMap.get(finalAreaId);
-                if (area) {
-                    areaName = area.name;
-                    finalDivisionId = area.division_id;
-                }
-            }
-            const division = divisionMap.get(finalDivisionId);
-            const divisionName = division ? division.name : 'Sin División';
-
-            if (!data[divisionName]) data[divisionName] = {};
-            if (!data[divisionName][areaName]) data[divisionName][areaName] = { users: [], departments: {} };
-
-            if (!user.departments || user.departments.length === 0) {
-                data[divisionName][areaName].users.push(user);
-            } else {
-                user.departments.forEach(dept => {
-                    if (!data[divisionName][areaName].departments[dept.name]) {
-                        data[divisionName][areaName].departments[dept.name] = [];
+            if (user.departments && user.departments.length > 0) {
+                user.departments.forEach(userDept => {
+                    for (const division of hierarchy) {
+                        for (const area of division.areas) {
+                            const dept = area.departments.find(d => d.id === userDept.id);
+                            if (dept) {
+                                dept.members.push(user);
+                                break;
+                            }
+                        }
                     }
-                    data[divisionName][areaName].departments[dept.name].push(user);
                 });
+            } else if (userArea) {
+                userArea.directMembers.push(user);
             }
         });
-        
-        // 2. Ordenación jerárquica final
-        const sortedData = {};
-        const sortUsers = (userArray) => {
-            userArray.sort((a, b) => {
-                const posA = positionMap.get(a.position_id);
-                const posB = positionMap.get(b.position_id);
-                const orderA = posA ? posA.order_index : 100;
-                const orderB = posB ? posB.order_index : 100;
-                if (orderA === orderB) {
-                    return (a.order_index || 100) - (b.order_index || 100);
-                }
-                return orderA - orderB;
-            });
-        };
 
-        Object.keys(data).sort((a, b) => {
-            const divA = divisions.find(d => d.name === a);
-            const divB = divisions.find(d => d.name === b);
-            return (divA?.order_index || 100) - (divB?.order_index || 100);
-        }).forEach(divisionName => {
-            sortedData[divisionName] = {};
-            const areasData = data[divisionName];
-            Object.keys(areasData).sort((a, b) => {
-                const areaA = areas.find(ar => ar.name === a);
-                const areaB = areas.find(ar => ar.name === b);
-                return (areaA?.order_index || 100) - (areaB?.order_index || 100);
-            }).forEach(areaName => {
-                const areaContent = areasData[areaName];
-                
-                sortUsers(areaContent.users);
-
-                const sortedDepts = {};
-                Object.keys(areaContent.departments).sort((a, b) => {
-                    const deptA = departments.find(d => d.name === a);
-                    const deptB = departments.find(d => d.name === b);
-                    return (deptA?.order_index || 100) - (deptB?.order_index || 100);
-                }).forEach(deptName => {
-                    const deptUsers = areaContent.departments[deptName];
-                    sortUsers(deptUsers);
-                    sortedDepts[deptName] = deptUsers;
-                });
-                
-                sortedData[divisionName][areaName] = {
-                    users: areaContent.users,
-                    departments: sortedDepts
-                };
+        hierarchy.forEach(division => {
+            division.areas.forEach(area => {
+                sortUsers(area.directMembers);
+                area.departments.forEach(dept => sortUsers(dept.members));
+                area.departments.sort((a,b) => (a.order_index || 100) - (b.order_index || 100));
             });
+            division.areas.sort((a,b) => (a.order_index || 100) - (b.order_index || 100));
         });
-        
-        return sortedData;
+
+        hierarchy.sort((a,b) => (a.order_index || 100) - (b.order_index || 100));
+
+        return hierarchy;
     }, [users, departments, areas, divisions, positions]);
 
     return (
         <div className="space-y-12">
-            {Object.entries(orgData).map(([divisionName, areasData]) => (
-                <section key={divisionName} className="bg-gray-50 p-4 sm:p-8 rounded-xl">
-                    <h1 className="text-3xl font-bold text-macrosad-purple text-center mb-8 pb-4 border-b-2 border-macrosad-purple/20">{divisionName}</h1>
+            {orgData.map(division => (
+                <section key={division.id} className="bg-gray-50 p-4 sm:p-8 rounded-xl">
+                    <h1 className="text-3xl font-bold text-macrosad-purple text-center mb-8 pb-4 border-b-2 border-macrosad-purple/20">{division.name}</h1>
                     <div className="space-y-10">
-                        {Object.entries(areasData).map(([areaName, areaContent]) => (
-                            <div key={areaName} className="bg-white p-6 rounded-lg shadow-md">
-                                <h2 className="text-xl font-semibold text-macrosad-pink mb-6">{areaName}</h2>
-                                {areaContent.users.length > 0 && (
-                                    <div className="flex flex-wrap justify-center gap-x-8 gap-y-6 mb-6">
-                                        {areaContent.users.map(user => <OrgUserCard key={user.id} user={user} />)}
-                                    </div>
-                                )}
-                                {Object.keys(areaContent.departments).length > 0 && (
-                                    <div className="space-y-6">
-                                        {Object.entries(areaContent.departments).map(([deptName, deptUsers]) => (
-                                            <div key={deptName} className="bg-slate-50 p-4 rounded-lg border-l-4 border-macrosad-pink">
-                                                <h3 className="font-bold text-gray-700 mb-4">{deptName}</h3>
-                                                <div className="flex flex-wrap justify-center gap-x-8 gap-y-6">
-                                                    {deptUsers.map(user => <OrgUserCard key={user.id} user={user} />)}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
+                        {division.areas.map(area => (
+                            (area.directMembers.length > 0 || area.departments.some(d => d.members.length > 0)) && (
+                                <div key={area.id} className="bg-white p-6 rounded-lg shadow-md">
+                                    <h2 className="text-xl font-semibold text-macrosad-pink mb-6">{area.name}</h2>
+                                    
+                                    {/* Miembros transversales del área */}
+                                    {area.directMembers.length > 0 && (
+                                        <div className="flex flex-wrap justify-center gap-x-8 gap-y-6 mb-6">
+                                            {area.directMembers.map(user => <OrgUserCard key={user.id} user={user} />)}
+                                        </div>
+                                    )}
+
+                                    {/* Departamentos dentro del área */}
+                                    {area.departments.length > 0 && (
+                                        <div className="space-y-6">
+                                            {area.departments.map(dept => (
+                                                dept.members.length > 0 && (
+                                                    <div key={dept.id} className="bg-slate-50 p-4 rounded-lg border-l-4 border-macrosad-pink">
+                                                        <h3 className="font-bold text-gray-700 mb-4">{dept.name}</h3>
+                                                        <div className="flex flex-wrap justify-center gap-x-8 gap-y-6">
+                                                            {dept.members.map(user => <OrgUserCard key={`${user.id}-${dept.id}`} user={user} />)}
+                                                        </div>
+                                                    </div>
+                                                )
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )
                         ))}
                     </div>
                 </section>

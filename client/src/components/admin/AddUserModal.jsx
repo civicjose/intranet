@@ -1,5 +1,5 @@
 // client/src/components/admin/AddUserModal.jsx
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import apiClient from '../../services/api';
 import ErrorMessage from '../ErrorMessage';
 import { MdClose, MdPerson, MdMail, MdLock, MdPhone, MdCalendarToday } from 'react-icons/md';
@@ -14,27 +14,20 @@ const FormInput = ({ icon, ...props }) => (
 
 const AddUserModal = ({ orgData, onSaveSuccess, onClose }) => {
   const { 
-    roles = [], departments: allDepartments = [], areas = [], positions = [], territories = [], locations = [] 
+    roles = [], departments = [], areas = [], positions = [], territories = [], locations = [], users = [] 
   } = orgData || {};
 
   const [formData, setFormData] = useState({
     firstName: '', lastName: '', email: '', companyPhone: '', birthDate: '', password: '', confirmPassword: '',
     role_id: roles.length > 0 ? roles.find(r => r.name === 'Usuario')?.id || roles[0].id : '',
     departments: [], area_id: '', position_id: '', territory_id: '', location_id: '',
+    supervisor_id: ''
   });
   
   const [creationMethod, setCreationMethod] = useState('invite');
-  const [assignmentType, setAssignmentType] = useState('department');
-  
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [passwordError, setPasswordError] = useState('');
-
-  const handleAssignmentTypeChange = (type) => {
-    setAssignmentType(type);
-    if (type === 'area') setFormData(prev => ({ ...prev, departments: [] }));
-    else setFormData(prev => ({ ...prev, area_id: '' }));
-  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -71,9 +64,7 @@ const AddUserModal = ({ orgData, onSaveSuccess, onClose }) => {
           delete payload.password;
           delete payload.confirmPassword;
       }
-      if (assignmentType === 'area') payload.departments = [];
-      else payload.area_id = null;
-
+      
       await apiClient.post('/users', payload);
       onSaveSuccess();
     } catch (err) {
@@ -82,6 +73,13 @@ const AddUserModal = ({ orgData, onSaveSuccess, onClose }) => {
       setIsLoading(false);
     }
   };
+  
+  const filteredDepartments = useMemo(() => {
+    if (!formData.area_id) {
+        return departments;
+    }
+    return departments.filter(dept => dept.area_id === Number(formData.area_id));
+  }, [formData.area_id, departments]);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 z-40 flex justify-center items-center p-4" onClick={onClose}>
@@ -137,22 +135,36 @@ const AddUserModal = ({ orgData, onSaveSuccess, onClose }) => {
                   </select>
                 </div>
                 <div className="md:col-span-2">
-                  <div className="flex items-center space-x-4 mb-2">
-                      <label className="flex items-center"><input type="radio" name="assignmentType" value="department" checked={assignmentType === 'department'} onChange={() => handleAssignmentTypeChange('department')} className="text-macrosad-pink focus:ring-macrosad-pink" /><span className="ml-2 text-sm">Por Departamento(s)</span></label>
-                      <label className="flex items-center"><input type="radio" name="assignmentType" value="area" checked={assignmentType === 'area'} onChange={() => handleAssignmentTypeChange('area')} className="text-macrosad-pink focus:ring-macrosad-pink" /><span className="ml-2 text-sm">Por Área</span></label>
-                  </div>
-                  {assignmentType === 'department' ? (
-                     <div className="bg-gray-50 p-3 rounded-md border max-h-32 overflow-y-auto">
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                            {allDepartments.map(dept => (<label key={dept.id} className="flex items-center space-x-2 p-1 rounded hover:bg-gray-200 cursor-pointer"><input type="checkbox" checked={formData.departments.includes(dept.id)} onChange={() => handleDepartmentChange(dept.id)} className="rounded text-macrosad-pink" /><span className="text-sm text-gray-700 select-none">{dept.name}</span></label>))}
-                        </div>
-                     </div>
-                  ) : (
+                  <label className="block text-sm font-medium text-gray-500 mb-1">Supervisor Directo</label>
+                  <select name="supervisor_id" value={formData.supervisor_id} onChange={handleChange} className="w-full p-2 border border-gray-300 rounded-md">
+                    <option value="">-- Sin supervisor --</option>
+                    {users.map(supervisor => (
+                      <option key={supervisor.id} value={supervisor.id}>
+                        {supervisor.first_name} {supervisor.last_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-500 mb-1">Área Principal</label>
                     <select name="area_id" value={formData.area_id} onChange={handleChange} className="w-full p-2 border border-gray-300 rounded-md">
                       <option value="">-- Selecciona un área --</option>
                       {areas.map(area => (<option key={area.id} value={area.id}>{area.name}</option>))}
                     </select>
-                  )}
+                </div>
+                <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-500 mb-1">Departamentos Asignados</label>
+                    <div className="bg-gray-50 p-3 rounded-md border max-h-32 overflow-y-auto">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                            {filteredDepartments.map(dept => (
+                                <label key={dept.id} className="flex items-center space-x-2 p-1 rounded hover:bg-gray-200 cursor-pointer">
+                                    <input type="checkbox" checked={formData.departments.includes(dept.id)} onChange={() => handleDepartmentChange(dept.id)} className="rounded text-macrosad-pink" />
+                                    <span className="text-sm text-gray-700 select-none">{dept.name}</span>
+                                </label>
+                            ))}
+                        </div>
+                     </div>
+                     {formData.area_id && <p className="text-xs text-gray-500 mt-1">Mostrando departamentos del área seleccionada.</p>}
                 </div>
               </div>
             </fieldset>

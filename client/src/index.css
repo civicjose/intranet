@@ -24,3 +24,39 @@ body {
     background-position: 0% 50%;
   }
 }
+
+/* Contenedor para el texto enriquecido */
+.job-profile-prose {
+  color: #4b5563; /* text-gray-600 */
+  font-size: 0.875rem; /* text-sm */
+  line-height: 1.5;
+}
+
+/* Reduce el margen de los párrafos */
+.job-profile-prose p {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+/* Asegura que las listas mantengan su estilo y sangría */
+.job-profile-prose ul,
+.job-profile-prose ol {
+  margin-top: 0.75em;
+  margin-bottom: 0.75em;
+  padding-left: 1.25em; /* Restaura la sangría para viñetas/números */
+}
+
+/* Ajusta el espacio entre los elementos de la lista */
+.job-profile-prose li {
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+}
+
+/* Asegura que los marcadores de lista sean visibles */
+.job-profile-prose ul > li {
+  list-style-type: disc;
+}
+
+.job-profile-prose ol > li {
+  list-style-type: decimal;
+}

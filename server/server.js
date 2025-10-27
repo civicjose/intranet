@@ -29,7 +29,7 @@ app.use('/api/positions', require('./routes/positionRoutes'));
 app.use('/api/locations', require('./routes/locationRoutes'));
 app.use('/api/upload', require('./routes/uploadRoutes'));
 app.use('/api/divisions', require('./routes/divisionRoutes'));
-
+app.use('/api/job-profiles', require('./routes/jobProfileRoutes'));
 
 
 // --- CONFIGURACIÓN PARA DESPLIEGUE EN PRODUCCIÓN ---

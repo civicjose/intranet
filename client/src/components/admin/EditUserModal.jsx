@@ -1,5 +1,5 @@
 // client/src/components/admin/EditUserModal.jsx
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import apiClient from '../../services/api';
 import ErrorMessage from '../ErrorMessage';
 import { MdClose, MdPerson, MdMail, MdPhone, MdCameraAlt } from 'react-icons/md';
@@ -14,15 +14,16 @@ const FormInput = ({ icon, ...props }) => (
 
 const EditUserModal = ({ user, orgData, onSaveSuccess, onClose }) => {
   const { 
-    roles = [], departments = [], areas = [], positions = [], territories = [], locations = [] 
+    roles = [], departments = [], areas = [], positions = [], territories = [], locations = [], users = [] 
   } = orgData || {};
   
   const [formData, setFormData] = useState({
     firstName: '', lastName: '', email: '', companyPhone: '', role_id: '',
-    departments: [], area_id: '', position_id: '', territory_id: '', location_id: '', avatar_url: ''
+    departments: [], area_id: '', position_id: '', territory_id: '', location_id: '', avatar_url: '',
+    supervisor_id: '',
+    order_index: 100
   });
   
-  const [assignmentType, setAssignmentType] = useState('department');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   
@@ -43,24 +44,16 @@ const EditUserModal = ({ user, orgData, onSaveSuccess, onClose }) => {
         position_id: user.position_id || '',
         territory_id: user.territory_id || '',
         location_id: user.location_id || '',
-        avatar_url: user.avatar_url || ''
+        avatar_url: user.avatar_url || '',
+        supervisor_id: user.supervisor_id || '',
+        // --- CORRECCIÓN CLAVE ---
+        // Se asegura de que el order_index existente se conserve, incluso si es 0 o null.
+        order_index: user.order_index !== null && user.order_index !== undefined ? user.order_index : 100
       };
       setFormData(initialData);
       setImagePreview(user.avatar_url ? `${apiClient.defaults.baseURL.replace('/api', '')}${user.avatar_url}` : '');
-
-      if (user.area_id) {
-        setAssignmentType('area');
-      } else {
-        setAssignmentType('department');
-      }
     }
   }, [user]);
-  
-  const handleAssignmentTypeChange = (type) => {
-    setAssignmentType(type);
-    if (type === 'area') setFormData(prev => ({ ...prev, departments: [] }));
-    else setFormData(prev => ({ ...prev, area_id: '' }));
-  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -94,17 +87,14 @@ const EditUserModal = ({ user, orgData, onSaveSuccess, onClose }) => {
 
       if (imageFile) {
         const imageFormData = new FormData();
-        imageFormData.append('image', imageFile); // La clave debe ser 'image'
-        const res = await apiClient.post('/upload', imageFormData, { // CORRECCIÓN: Usar la ruta /upload
+        imageFormData.append('image', imageFile);
+        const res = await apiClient.post('/upload', imageFormData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
         finalAvatarUrl = res.data.url;
       }
 
       const payload = { ...formData, avatar_url: finalAvatarUrl, role_id: Number(formData.role_id) };
-
-      if (assignmentType === 'area') payload.departments = [];
-      else payload.area_id = null;
       
       await apiClient.put(`/users/${user.id}`, payload);
       onSaveSuccess();
@@ -114,6 +104,13 @@ const EditUserModal = ({ user, orgData, onSaveSuccess, onClose }) => {
       setIsLoading(false);
     }
   };
+
+  const filteredDepartments = useMemo(() => {
+    if (!formData.area_id) {
+        return departments;
+    }
+    return departments.filter(dept => dept.area_id === Number(formData.area_id));
+  }, [formData.area_id, departments]);
 
   if (!user) return null;
 
@@ -127,7 +124,6 @@ const EditUserModal = ({ user, orgData, onSaveSuccess, onClose }) => {
 
         <form onSubmit={handleSubmit}>
           <div className="p-6 max-h-[75vh] overflow-y-auto space-y-6">
-            
             <fieldset>
               <legend className="text-lg font-semibold text-gray-800 mb-3">Datos Personales</legend>
               <div className="flex flex-col sm:flex-row items-center gap-6">
@@ -172,22 +168,39 @@ const EditUserModal = ({ user, orgData, onSaveSuccess, onClose }) => {
                   </select>
                 </div>
                 <div className="md:col-span-2">
-                  <div className="flex items-center space-x-4 mb-2">
-                      <label className="flex items-center"><input type="radio" name="assignmentType" value="department" checked={assignmentType === 'department'} onChange={() => handleAssignmentTypeChange('department')} className="text-macrosad-pink focus:ring-macrosad-pink" /><span className="ml-2 text-sm">Por Departamento(s)</span></label>
-                      <label className="flex items-center"><input type="radio" name="assignmentType" value="area" checked={assignmentType === 'area'} onChange={() => handleAssignmentTypeChange('area')} className="text-macrosad-pink focus:ring-macrosad-pink" /><span className="ml-2 text-sm">Por Área</span></label>
-                  </div>
-                  {assignmentType === 'department' ? (
-                     <div className="bg-gray-50 p-3 rounded-md border max-h-32 overflow-y-auto">
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                            {departments.map(dept => (<label key={dept.id} className="flex items-center space-x-2 p-1 rounded hover:bg-gray-200 cursor-pointer"><input type="checkbox" checked={formData.departments.includes(dept.id)} onChange={() => handleDepartmentChange(dept.id)} className="rounded text-macrosad-pink" /><span className="text-sm text-gray-700 select-none">{dept.name}</span></label>))}
-                        </div>
-                     </div>
-                  ) : (
+                  <label className="block text-sm font-medium text-gray-500 mb-1">Supervisor Directo</label>
+                  <select name="supervisor_id" value={formData.supervisor_id} onChange={handleChange} className="w-full p-2 border border-gray-300 rounded-md">
+                    <option value="">-- Sin supervisor --</option>
+                    {users
+                      .filter(u => u.id !== user.id)
+                      .map(supervisor => (
+                        <option key={supervisor.id} value={supervisor.id}>
+                          {supervisor.first_name} {supervisor.last_name}
+                        </option>
+                      ))
+                    }
+                  </select>
+                </div>
+                <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-500 mb-1">Área Principal</label>
                     <select name="area_id" value={formData.area_id} onChange={handleChange} className="w-full p-2 border border-gray-300 rounded-md">
                       <option value="">-- Selecciona un área --</option>
                       {areas.map(area => (<option key={area.id} value={area.id}>{area.name}</option>))}
                     </select>
-                  )}
+                </div>
+                <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-500 mb-1">Departamentos Asignados</label>
+                    <div className="bg-gray-50 p-3 rounded-md border max-h-32 overflow-y-auto">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                            {filteredDepartments.map(dept => (
+                                <label key={dept.id} className="flex items-center space-x-2 p-1 rounded hover:bg-gray-200 cursor-pointer">
+                                    <input type="checkbox" checked={formData.departments.includes(dept.id)} onChange={() => handleDepartmentChange(dept.id)} className="rounded text-macrosad-pink" />
+                                    <span className="text-sm text-gray-700 select-none">{dept.name}</span>
+                                </label>
+                            ))}
+                        </div>
+                     </div>
+                     {formData.area_id && <p className="text-xs text-gray-500 mt-1">Mostrando departamentos del área seleccionada.</p>}
                 </div>
               </div>
             </fieldset>

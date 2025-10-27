@@ -5,27 +5,31 @@ const upload = require('../middleware/uploadMiddleware');
 
 const {
     getUserProfile,
-    updateUserProfile, // 1. Importa la nueva función
+    updateUserProfile,
     getAllUsers,
     createUser,
     updateUser,
     deleteUser,
-    uploadAvatar
+    uploadAvatar,
+    getMyTeam,
+    reorderUsers // Importa el nuevo controlador
 } = require('../controllers/userController');
 
 const { protect, admin } = require('../middleware/authMiddleware');
 
 // --- RUTA PARA EL PROPIO USUARIO ---
-// GET /api/users/me -> Obtener perfil
-// PUT /api/users/me -> Actualizar perfil
 router.route('/me')
     .get(protect, getUserProfile)
-    .put(protect, updateUserProfile); // 2. Añade el manejador PUT
+    .put(protect, updateUserProfile);
 
 router.post('/me/avatar', protect, upload.single('avatar'), uploadAvatar);
 
+// --- RUTA PARA "MI EQUIPO" ---
+router.get('/my-team', protect, getMyTeam);
 
 // --- RUTAS DE ADMINISTRACIÓN ---
+router.put('/reorder', protect, admin, reorderUsers); // Añade la nueva ruta
+
 router.get('/', protect, admin, getAllUsers);
 router.post('/', protect, admin, createUser);
 router.put('/:id', protect, admin, updateUser);
