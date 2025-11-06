@@ -29,6 +29,7 @@ import JobProfileEditor from './pages/admin/JobProfileEditor';
 import TeamMemberProfilePage from './pages/TeamMemberProfilePage';
 import TeamMemberDocumentationPage from './pages/TeamMemberDocumentationPage';
 
+
 function App() {
   const { logout, isAuthenticated } = useAuth();
 
@@ -38,6 +39,7 @@ function App() {
     <Routes>
       {/* Rutas Públicas */}
       <Route path="/" element={!isAuthenticated ? <LoginPage /> : <Navigate to="/dashboard" />} />
+      <Route path="/reset-password/:token" element={!isAuthenticated ? <LoginPage /> : <Navigate to="/dashboard" />} />
       <Route path="/verify" element={!isAuthenticated ? <VerificationPage /> : <Navigate to="/dashboard" />} />
       <Route path="/complete-profile" element={!isAuthenticated ? <CompleteProfilePage /> : <Navigate to="/dashboard" />} />
 

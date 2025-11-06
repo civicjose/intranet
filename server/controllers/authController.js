@@ -46,7 +46,6 @@ exports.checkEmail = async (req, res, next) => {
       await User.create(email, hashedCode, expiresAt);
     }
 
-    // --- PLANTILLA HTML RESTAURADA ---
     const mailOptions = {
       from: `"Intranet Macrosad" <${process.env.EMAIL_USER}>`,
       to: email,
@@ -200,6 +199,118 @@ exports.getSetupInfo = async (req, res, next) => {
             firstName: user.first_name,
             lastName: user.last_name,
         });
+
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * Gestiona la solicitud de "Olvidé mi contraseña".
+ * Genera un token y envía un email al usuario.
+ */
+exports.forgotPassword = async (req, res, next) => {
+    try {
+        const { email } = req.body;
+        const user = await User.findByEmail(email);
+
+        // Importante: Enviamos una respuesta de éxito incluso si el usuario no existe
+        // para no revelar qué correos están registrados en el sistema (seguridad).
+        if (!user) {
+            return res.status(200).json({ message: 'Si tu correo está registrado, recibirás un enlace para recuperar tu contraseña.' });
+        }
+
+        // 1. Generar un token aleatorio
+        const resetToken = crypto.randomBytes(32).toString('hex');
+
+        // 2. Hashear el token antes de guardarlo en la BD por seguridad
+        const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+
+        // 3. Establecer fecha de expiración (ej: 1 hora)
+        const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+
+        // 4. Guardar el token hasheado y la expiración en el usuario
+        await User.savePasswordResetToken(user.id, hashedToken, expiresAt);
+
+        // 5. Crear el enlace de reseteo (enviamos el token SIN hashear en el enlace)
+        const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
+
+        // 6. Enviar el correo
+        await transporter.sendMail({
+            from: `"Intranet Macrosad" <${process.env.EMAIL_USER}>`,
+            to: user.email,
+            subject: "Recuperación de Contraseña",
+            html: `
+                <!DOCTYPE html>
+                <html lang="es">
+                <head>
+                  <meta charset="UTF-8">
+                  <title>Recuperación de Contraseña</title>
+                </head>
+                <body style="margin: 0; padding: 0; font-family: Poppins, Arial, sans-serif; background-color: #f4f7f6;">
+                  <table align="center" border="0" cellpadding="0" cellspacing="0" width="600" style="border-collapse: collapse; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin: 20px auto;">
+                    <tr>
+                      <td align="center" style="padding: 40px 20px 30px 20px; background-color: #6c3b5d; border-radius: 12px 12px 0 0;">
+                        <h1 style="color: #ffffff; font-size: 28px; margin: 0;">Recuperación de Contraseña</h1>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 40px 30px;">
+                        <p style="color: #333333; font-size: 16px; margin: 0 0 15px 0;">Hola ${user.first_name},</p>
+                        <p style="color: #333333; font-size: 16px; margin: 0 0 30px 0;">Has solicitado restablecer tu contraseña. Haz clic en el siguiente botón para continuar. Este enlace es válido durante 1 hora.</p>
+                        <div style="text-align: center; margin-bottom: 30px;">
+                          <a href="${resetUrl}" style="display: inline-block; background-color: #e5007e; color: #ffffff; font-size: 16px; font-weight: bold; text-decoration: none; padding: 15px 25px; border-radius: 8px;">
+                            Restablecer Contraseña
+                          </a>
+                        </div>
+                        <p style="color: #333333; font-size: 16px; margin: 0;">Si no has solicitado este cambio, puedes ignorar este correo de forma segura.</p>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td align="center" style="padding: 20px 30px; background-color: #f9f9f9; border-radius: 0 0 12px 12px;">
+                        <p style="color: #888888; font-size: 12px; margin: 0;">&copy; ${new Date().getFullYear()} Macrosad. Todos los derechos reservados.</p>
+                      </td>
+                    </tr>
+                  </table>
+                </body>
+                </html>
+            `,
+        });
+
+        res.status(200).json({ message: 'Si tu correo está registrado, recibirás un enlace para recuperar tu contraseña.' });
+
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * Restablece la contraseña usando el token.
+ */
+exports.resetPassword = async (req, res, next) => {
+    try {
+        const { token } = req.params;
+        const { password } = req.body;
+
+        // 1. Hashear el token recibido para buscarlo en la BD
+        const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+        // 2. Buscar usuario con ese token y que no haya expirado
+        const user = await User.findByPasswordResetToken(hashedToken);
+
+        if (!user) {
+            res.status(400);
+            return next(new Error('El token no es válido o ha expirado.'));
+        }
+
+        // 3. Hashear la nueva contraseña
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+
+        // 4. Actualizar la contraseña en la BD y limpiar los campos de reseteo
+        await User.resetPassword(user.id, hashedPassword);
+        
+        res.status(200).json({ message: 'Contraseña actualizada correctamente.' });
 
     } catch (error) {
         next(error);

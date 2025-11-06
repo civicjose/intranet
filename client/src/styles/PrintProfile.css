@@ -1,0 +1,148 @@
+/* client/src/styles/PrintProfile.css */
+
+/* --- Estructura de la Página --- */
+.a4-sheet {
+  /* Forzado a tamaño A4 en mm */
+  width: 210mm;
+  min-height: 297mm; /* El alto se ajustará al contenido */
+  
+  /* Márgenes del Word (aproximados) */
+  padding: 1.5cm;
+  
+  /* Reset */
+  margin: 0;
+  border: none; /* Sin borde en la captura final */
+  
+  /* Estilos base del Word */
+  background: #fff;
+  color: #000;
+  /* Usamos las fuentes del HTML de Word como stack principal */
+  font-family: "Avenir Next LT Pro", "Century Gothic", Arial, sans-serif;
+  font-size: 11pt;
+  line-height: 1.15;
+  box-sizing: border-box;
+}
+
+/* --- Título Principal (no es un header de sección) --- */
+.print-main-title {
+  text-align: center;
+  font-size: 12pt;
+  line-height: 107%;
+  font-weight: bold;
+  text-decoration: underline;
+  margin-bottom: 16px;
+}
+
+/* --- Títulos de Sección (las barras de color) --- */
+.print-section-title {
+  font-size: 11pt;
+  font-weight: bold;
+  color: white;
+  text-align: center;
+  padding: 6px 10px;
+  margin-top: 12px;
+  margin-bottom: 0;
+  border: 1px solid #000;
+  /* Colores extraídos del HTML */
+}
+.print-section-title.pink {
+  background-color: #E5007D;
+}
+.print-section-title.fuchsia {
+  background-color: #E60E85;
+}
+
+
+/* --- Tablas de Contenido --- */
+.print-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 16px;
+  page-break-inside: avoid; /* Intenta no romper tablas entre páginas */
+}
+
+.print-table th,
+.print-table td {
+  border: 1px solid #000; /* Borde negro como en Word */
+  padding: 6px 10px;
+  text-align: left;
+  vertical-align: top;
+  font-size: 10pt; /* El contenido de la tabla es ligeramente más pequeño */
+  word-wrap: break-word;
+}
+
+/* --- Estilos específicos de tablas --- */
+
+/* Tabla de Identificación y Formación */
+.print-table .label-col {
+  width: 30%;
+  font-weight: bold;
+  background-color: #A6A6A6; /* Gris oscuro del Word */
+  color: black;
+}
+.print-table .label-col-light {
+  width: 30%;
+  font-weight: bold;
+  background-color: #D9D9D9; /* Gris claro del Word */
+  color: black;
+}
+
+/* Tabla de Objetivo, Funciones, Herramientas (1 sola celda) */
+.print-table .full-col {
+  width: 100%;
+}
+
+/* Tabla de Competencias */
+.print-table th.competency-header {
+  background: #D9D9D9;
+  font-weight: bold;
+  font-size: 9pt;
+  color: black;
+}
+.print-table th.competency-level {
+  width: 8%;
+  text-align: center;
+  background: #D9D9D9;
+  font-weight: bold;
+  font-size: 9pt;
+  color: black;
+}
+.print-table td.competency-label {
+  font-weight: normal;
+}
+.print-table td.competency-value {
+  text-align: center;
+  font-weight: bold;
+}
+
+/* Tabla de Riesgos */
+.print-table th.risk-header {
+  text-align: center;
+  background: #D9D9D9;
+  font-weight: bold;
+  color: black;
+}
+.print-table td.risk-label {
+  background: #D9D9D9;
+  font-weight: normal; /* El HTML no lo pone en negrita */
+  font-size: 9pt;
+}
+.print-table td.risk-value {
+  text-align: center;
+  font-size: 9pt;
+}
+
+/* --- Contenido HTML (Listas) --- */
+.print-content ul,
+.print-content ol {
+  padding-left: 20px;
+  margin-top: 5px;
+  margin-bottom: 5px;
+}
+.print-content li {
+  margin-bottom: 4px;
+}
+.print-content p {
+  margin-top: 0;
+  margin-bottom: 5px;
+}

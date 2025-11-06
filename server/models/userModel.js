@@ -410,6 +410,38 @@ class User {
       connection.release();
     }
   }
+
+  /**
+     * Guarda el token de reseteo de contraseña y su fecha de expiración para un usuario.
+     * @param {number} userId - ID del usuario.
+     * @param {string} hashedToken - El token hasheado para guardar en la BD.
+     * @param {Date} expiresAt - La fecha de expiración del token.
+     */
+    static async savePasswordResetToken(userId, hashedToken, expiresAt) {
+        const query = "UPDATE users SET password_reset_token = ?, password_reset_expires_at = ? WHERE id = ?";
+        await db.query(query, [hashedToken, expiresAt, userId]);
+    }
+
+    /**
+     * Busca un usuario por un token de reseteo válido (que no haya expirado).
+     * @param {string} hashedToken - El token hasheado.
+     * @returns {Promise<Object|null>} El usuario si se encuentra y el token es válido.
+     */
+    static async findByPasswordResetToken(hashedToken) {
+        const query = "SELECT * FROM users WHERE password_reset_token = ? AND password_reset_expires_at > NOW()";
+        const [rows] = await db.query(query, [hashedToken]);
+        return rows[0] || null;
+    }
+
+    /**
+     * Actualiza la contraseña de un usuario y limpia los campos de reseteo.
+     * @param {number} userId - ID del usuario.
+     * @param {string} newHashedPassword - La nueva contraseña ya hasheada.
+     */
+    static async resetPassword(userId, newHashedPassword) {
+        const query = "UPDATE users SET password = ?, password_reset_token = NULL, password_reset_expires_at = NULL WHERE id = ?";
+        await db.query(query, [newHashedPassword, userId]);
+    }
 }
 
 module.exports = User;

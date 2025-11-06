@@ -12,31 +12,75 @@ class JobProfile {
         const query = "SELECT * FROM employee_job_profiles WHERE user_id = ?";
         const [rows] = await db.query(query, [userId]);
         
-        // El campo 'competencies' se guarda como JSON, lo parseamos al leerlo.
-        if (rows[0] && rows[0].competencies) {
-            rows[0].competencies = JSON.parse(rows[0].competencies);
+        if (rows[0]) {
+            try {
+                // Parsea las competencias si existen
+                if (rows[0].competencies) {
+                    rows[0].competencies = JSON.parse(rows[0].competencies);
+                }
+            } catch (e) {
+                console.error("Error parsing competencies:", e);
+                rows[0].competencies = {};
+            }
+
+            try {
+                // Parsea los objetivos anuales si existen
+                if (rows[0].annual_objectives) {
+                    rows[0].annual_objectives = JSON.parse(rows[0].annual_objectives);
+                } else {
+                    rows[0].annual_objectives = [];
+                }
+            } catch (e) {
+                console.error("Error parsing annual_objectives:", e);
+                rows[0].annual_objectives = [];
+            }
+
+            try {
+                // --- NUEVO: Parsea los riesgos del puesto ---
+                if (rows[0].job_risks) {
+                    rows[0].job_risks = JSON.parse(rows[0].job_risks);
+                } else {
+                    rows[0].job_risks = {}; // Asegura que sea un objeto
+                }
+            } catch (e) {
+                console.error("Error parsing job_risks:", e);
+                rows[0].job_risks = {};
+            }
         }
         
         return rows[0] || null;
     }
 
     /**
-     * Crea o actualiza una ficha de puesto para un usuario.
-     * Esta función hace un "UPSERT": si ya existe una ficha para el user_id, la actualiza. Si no, la crea.
+     * Crea o actualiza una ficha de puesto para un usuario (UPSERT).
      * @param {Object} data - Los datos de la ficha. Debe incluir user_id.
      * @returns {Promise<Object>} El resultado de la operación.
      */
     static async createOrUpdate(data) {
-        // El campo de competencias se recibe como objeto, lo convertimos a string JSON para guardarlo.
+        // Serializa los campos JSON
         const competenciesJSON = data.competencies ? JSON.stringify(data.competencies) : null;
+        const objectivesJSON = data.annual_objectives ? JSON.stringify(data.annual_objectives) : '[]';
+        // --- NUEVO: Serializa los riesgos del puesto ---
+        const jobRisksJSON = data.job_risks ? JSON.stringify(data.job_risks) : '{}';
+
+        const {
+            user_id, position_name, department_name, supervisor_name, description_date,
+            objective, degree_required, complementary_training, technical_knowledge, experience_required,
+            needs_recycling, recycling_frequency, recycling_knowledge,
+            functions, tools_and_equipment,
+            created_by_user_id
+        } = data;
 
         const query = `
             INSERT INTO employee_job_profiles (
                 user_id, position_name, department_name, supervisor_name, description_date,
                 objective, degree_required, complementary_training, technical_knowledge, experience_required,
                 needs_recycling, recycling_frequency, recycling_knowledge,
-                functions, tools_and_equipment, competencies, annual_objectives, created_by_user_id
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                functions, tools_and_equipment, competencies, 
+                annual_objectives, 
+                job_risks, -- <-- Campo actualizado
+                created_by_user_id
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE
                 position_name = VALUES(position_name), department_name = VALUES(department_name), 
                 supervisor_name = VALUES(supervisor_name), description_date = VALUES(description_date),
@@ -45,14 +89,20 @@ class JobProfile {
                 experience_required = VALUES(experience_required), needs_recycling = VALUES(needs_recycling), 
                 recycling_frequency = VALUES(recycling_frequency), recycling_knowledge = VALUES(recycling_knowledge),
                 functions = VALUES(functions), tools_and_equipment = VALUES(tools_and_equipment), 
-                competencies = VALUES(competencies), annual_objectives = VALUES(annual_objectives);
+                competencies = VALUES(competencies), 
+                annual_objectives = VALUES(annual_objectives),
+                job_risks = VALUES(job_risks), -- <-- Campo actualizado
+                updated_at = CURRENT_TIMESTAMP;
         `;
 
         const values = [
-            data.user_id, data.position_name, data.department_name, data.supervisor_name, data.description_date,
-            data.objective, data.degree_required, data.complementary_training, data.technical_knowledge, data.experience_required,
-            data.needs_recycling, data.recycling_frequency, data.recycling_knowledge,
-            data.functions, data.tools_and_equipment, competenciesJSON, data.annual_objectives, data.created_by_user_id
+            user_id, position_name, department_name, supervisor_name, description_date,
+            objective, degree_required, complementary_training, technical_knowledge, experience_required,
+            needs_recycling, recycling_frequency, recycling_knowledge,
+            functions, tools_and_equipment, competenciesJSON,
+            objectivesJSON,
+            jobRisksJSON, // <-- Pasa el JSON de riesgos
+            created_by_user_id
         ];
 
         const [result] = await db.query(query, values);

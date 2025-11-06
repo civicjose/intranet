@@ -10,7 +10,7 @@ const TeamMemberCard = ({ member }) => {
 
     return (
         <Link 
-            to={`/team/member/${member.id}/documentation`} // <-- ENLACE A LA NUEVA PÁGINA
+            to={`/team/member/${member.id}/documentation`}
             className="group bg-white rounded-lg shadow-md p-4 flex flex-col text-center hover:shadow-xl hover:-translate-y-1 transition-all duration-200"
         >
             <div className="flex-grow w-full">
